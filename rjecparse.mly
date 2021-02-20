@@ -79,7 +79,7 @@ vdecl_typ:
   | BOOL  { Bool  }
   | CHAR  { Char }
   | CHAN  { Chan  }
-  | LSQUARE ILIT RSQUARE typ { Array($4) }
+  | LSQUARE ILIT RSQUARE typ { ArrayInit($2, $4) }
   | ID    { Struct($1) }
 
 vdecl:
