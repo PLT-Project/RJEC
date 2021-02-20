@@ -1,6 +1,6 @@
 (* Ocamllex scanner for MicroC *)
 
-{ open Microcparse }
+{ open Rjecparse }
 
 let digit = ['0' - '9']
 let digits = digit+
@@ -12,35 +12,51 @@ rule token = parse
 | ')'      { RPAREN }
 | '{'      { LBRACE }
 | '}'      { RBRACE }
+| '['      { LSQUARE }
+| ']'      { RSQUARE }
+| ':'      { COLON }
+| '.'      { DOT }
 | ';'      { SEMI }
 | ','      { COMMA }
 | '+'      { PLUS }
 | '-'      { MINUS }
 | '*'      { TIMES }
 | '/'      { DIVIDE }
+| '%'      { MOD }
 | '='      { ASSIGN }
+| ":="     { INIT }
 | "=="     { EQ }
-| "!="     { NEQ }
 | '<'      { LT }
 | "<="     { LEQ }
-| ">"      { GT }
-| ">="     { GEQ }
 | "&&"     { AND }
 | "||"     { OR }
 | "!"      { NOT }
+| "<-"     { ARROW }
 | "if"     { IF }
 | "else"   { ELSE }
 | "for"    { FOR }
-| "while"  { WHILE }
+| "break"  { BREAK }
+| "continue" { CONTINUE }
+| "defer"  { DEFER }
+| "select" { SELECT }
+| "case"   { CASE }
 | "return" { RETURN }
 | "int"    { INT }
 | "bool"   { BOOL }
-| "float"  { FLOAT }
-| "void"   { VOID }
+| "char"   { CHAR }
+| "chan"   { CHAN }
+| "struct" { STRUCT }
+| "var"    { VAR }
+| "func"   { FUNC }
+| "type"   { TYPE }
+| "yeet"   { YEET }
+| "make"   { MAKE }
+| "close"  { CLOSE }
 | "true"   { BLIT(true)  }
 | "false"  { BLIT(false) }
-| digits as lxm { LITERAL(int_of_string lxm) }
-| digits '.'  digit* ( ['e' 'E'] ['+' '-']? digits )? as lxm { FLIT(lxm) }
+| digits as lxm { ILIT(int_of_string lxm) }
+| '\"'     { str (Buffer.create 16) lexbuf }
+| '\'' _ '\'' as lxm { CLIT(String.get lxm 1) }
 | ['a'-'z' 'A'-'Z']['a'-'z' 'A'-'Z' '0'-'9' '_']*     as lxm { ID(lxm) }
 | eof { EOF }
 | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
@@ -48,3 +64,7 @@ rule token = parse
 and comment = parse
   "*/" { token lexbuf }
 | _    { comment lexbuf }
+
+and str buf = parse
+  '\"' { SLIT(Buffer.contents buf) }
+| [^ '\"'] { Buffer.add_string buf (Lexing.lexeme lexbuf); str buf lexbuf }
