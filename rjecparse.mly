@@ -74,10 +74,6 @@ typ:
   | LSQUARE RSQUARE typ { Array($3) }
   | ID    { Struct($1) }
 
-vdecl_list:
-    /* nothing */    { [] }
-  | vdecl_list vdecl { $2 :: $1 }
-
 vdecl_typ:
     INT   { Int   }
   | BOOL  { Bool  }
@@ -113,9 +109,9 @@ stmt:
   | IF expr LBRACE stmt_list RBRACE %prec NOELSE
                                       { If($2, Block(List.rev $4), Block([])) }
   | IF expr LBRACE stmt_list RBRACE ELSE LBRACE stmt_list RBRACE
-                                      { If($2, Block(List.rev $4), $8)        }
+                             { If($2, Block(List.rev $4), Block(List.rev $8)) }
   | FOR expr_opt SEMI expr SEMI expr_opt LBRACE stmt_list RBRACE
-                                      { For($2, Block(List.rev $4), $6, $8)   }
+                                      { For($2, $4, $6, Block(List.rev $8))   }
   | FOR expr LBRACE stmt_list RBRACE  { While($2, Block(List.rev $4))         }
   | FOR LBRACE stmt_list RBRACE    { While(BoolLit(true), Block(List.rev $3)) }
   | SELECT LBRACE case_list RBRACE          { Select(List.rev $3)   }
