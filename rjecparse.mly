@@ -73,6 +73,7 @@ typ:
   | CHAN  { Chan  }
   | LSQUARE RSQUARE typ { Array($3) }
   | ID    { Struct($1) }
+  | FUNC LPAREN typ_opt RPAREN LPAREN typ_opt RPAREN { Func($3, $6) }
 
 vdecl_typ:
     INT   { Int   }
@@ -111,10 +112,8 @@ stmt:
   | assign_stmt SEMI                        { AssignStmt $1         }
   | RETURN args_opt SEMI                    { Return $2             }
   | LBRACE stmt_list RBRACE                 { Block(List.rev $2)    }
-  | IF expr LBRACE stmt_list RBRACE %prec NOELSE
-                                      { If($2, Block(List.rev $4), Block([])) }
-  | IF expr LBRACE stmt_list RBRACE ELSE LBRACE stmt_list RBRACE
-                             { If($2, Block(List.rev $4), Block(List.rev $8)) }
+  | IF expr LBRACE stmt_list RBRACE else_opt
+                                      { If($2, Block(List.rev $4), $6) }
   | FOR expr_opt SEMI expr SEMI expr_opt LBRACE stmt_list RBRACE
                                       { For($2, $4, $6, Block(List.rev $8))   }
   | FOR expr LBRACE stmt_list RBRACE  { While($2, Block(List.rev $4))         }
@@ -124,6 +123,12 @@ stmt:
   | YEET expr SEMI                          { Yeet($2)              }
   | BREAK SEMI                              { Break                 }
   | CONTINUE SEMI                           { Continue              }
+
+else_opt:
+    %prec NOELSE                                               { [] }
+  | ELSE IF expr LBRACE stmt_list RBRACE else_opt
+                                   { If($3, Block(List.rev $5), $7) }
+  | ELSE LBRACE stmt_list RBRACE                      { List.rev $3 }
 
 case_list:
     CASE expr COLON stmt_list           { [($2, $4)] }
