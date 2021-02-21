@@ -59,8 +59,9 @@ formal_list:
   | formal_list COMMA ID typ { ($4,$3) :: $1 }
 
 typ_opt:
-  /* nothing */ { [] }
-| typ_list   { $1 }
+    /* nothing */          {   [] }
+  | typ                    { [$1] }
+  | LPAREN typ_list RPAREN {   $2 }
 
 typ_list:
     typ                   { [$1]     }
@@ -73,7 +74,11 @@ typ:
   | CHAN  { Chan  }
   | LSQUARE RSQUARE typ { Array($3) }
   | ID    { Struct($1) }
-  | FUNC LPAREN typ_opt RPAREN LPAREN typ_opt RPAREN { Func($3, $6) }
+  | FUNC LPAREN typ_formal_opt RPAREN typ_opt { Func($3, $5) }
+
+typ_formal_opt:
+    /* nothing */ { [] }
+  | typ_list      { $1 }
 
 vdecl_typ:
     INT   { Int   }
