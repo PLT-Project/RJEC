@@ -83,7 +83,11 @@ vdecl_typ:
   | ID    { Struct($1) }
 
 vdecl:
-    VAR ID vdecl_typ { Vdecl($3, $2) }
+    VAR id_list vdecl_typ { Vdecl($3, List.rev $2) }
+
+id_list:
+    ID { [$1] }
+  | id_list COMMA ID { $3 :: $1 }
 
 sdecl:
     TYPE ID STRUCT LBRACE member_list RBRACE { Sdecl($2, $5) }
@@ -104,7 +108,8 @@ stmt_list:
 
 stmt:
     expr SEMI                               { Expr $1               }
-  | RETURN expr_opt SEMI                    { Return $2             }
+  | assign_stmt SEMI                        { AssignStmt $1         }
+  | RETURN args_opt SEMI                    { Return $2             }
   | LBRACE stmt_list RBRACE                 { Block(List.rev $2)    }
   | IF expr LBRACE stmt_list RBRACE %prec NOELSE
                                       { If($2, Block(List.rev $4), Block([])) }
@@ -145,9 +150,6 @@ expr:
   | expr AND    expr { Binop($1, And,   $3)   }
   | expr OR     expr { Binop($1, Or,    $3)   }
   | NOT expr         { Unop(Not, $2)          }
-  | vdecl ASSIGN expr { DeclAssign($1, $3)    }
-  | ID ASSIGN expr   { Assign($1, $3)         }
-  | ID INIT    expr  { Init($1, $3)           }
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN { $2                   }
   | ID DOT ID        { Access($1, $3)         }
@@ -157,6 +159,11 @@ expr:
   | MAKE LPAREN CHAN chan_typ RPAREN  { Make($4)   }
   | MAKE LPAREN CHAN chan_typ COMMA expr RPAREN  { MakeBuffer($4, $6)   }
   | CLOSE LPAREN ID RPAREN { Close($3)  }
+
+assign_stmt:
+  | vdecl ASSIGN args_list { DeclAssign($1, List.rev $3)    }
+  | id_list ASSIGN args_list { Assign(List.rev $1, List.rev $3)         }
+  | id_list INIT   args_list { Init(List.rev $1, List.rev $3)           }
 
 args_opt:
     /* nothing */ { [] }
