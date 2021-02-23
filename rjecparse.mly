@@ -71,7 +71,7 @@ typ:
     INT   { Int   }
   | BOOL  { Bool  }
   | CHAR  { Char }
-  | CHAN  { Chan  }
+  | CHAN chan_typ           { Chan  }
   | LSQUARE RSQUARE typ { Array($3) }
   | ID    { Struct($1) }
   | FUNC LPAREN typ_formal_opt RPAREN typ_opt { Func($3, $5) }
@@ -84,7 +84,7 @@ vdecl_typ:
     INT   { Int   }
   | BOOL  { Bool  }
   | CHAR  { Char }
-  | CHAN  { Chan  }
+  | CHAN chan_typ                        { Chan  }
   | LSQUARE ILIT RSQUARE typ { ArrayInit($2, $4) }
   | ID    { Struct($1) }
 
@@ -99,10 +99,10 @@ sdecl:
     TYPE ID STRUCT LBRACE member_list RBRACE { Sdecl($2, $5) }
 
 struct_typ:
-    INT   { Int   }
-  | BOOL  { Bool  }
-  | CHAR  { Char }
-  | CHAN  { Chan  }
+    INT            { Int   }
+  | BOOL           { Bool  }
+  | CHAR           { Char  }
+  | CHAN chan_typ  { Chan  }
 
 member_list:
     ID struct_typ SEMI             { [($2,$1)]     }
