@@ -44,7 +44,7 @@ decls:
  | decls sdecl { (fst $1, snd $1, ($2 :: trd $1)) }
 
 fdecl:
-   FUNC ID LPAREN formals_opt RPAREN typ_opt LBRACE stmt_list RBRACE
+   FUNC ID LPAREN formals_opt RPAREN return_types LBRACE stmt_list RBRACE
      { { fname = $2;
 	 formals = List.rev $4;
    types = List.rev $6;
@@ -58,7 +58,7 @@ formal_list:
     ID typ                   { [($2,$1)]     }
   | formal_list COMMA ID typ { ($4,$3) :: $1 }
 
-typ_opt:
+return_types:
     /* nothing */          {   [] }
   | typ                    { [$1] }
   | LPAREN typ_list RPAREN {   $2 }
@@ -74,14 +74,14 @@ typ:
   | CHAN basic_typ           { Chan  }
   | LSQUARE RSQUARE typ { Array($3) }
   | ID    { Struct($1) }
-  | FUNC LPAREN typ_formal_opt RPAREN typ_opt { Func($3, $5) }
+  | FUNC LPAREN typ_opt RPAREN return_types { Func($3, $5) }
 
 basic_typ:
     INT   { Int   }
   | BOOL  { Bool  }
   | CHAR  { Char }
 
-typ_formal_opt:
+typ_opt:
     /* nothing */ { [] }
   | typ_list      { $1 }
 
