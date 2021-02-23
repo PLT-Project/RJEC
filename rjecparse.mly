@@ -139,6 +139,11 @@ case_list:
     CASE expr COLON stmt_list           { [($2, $4)] }
   | case_list CASE expr COLON stmt_list { ($3, $5) :: $1 }
 
+assign_stmt:
+  | vdecl ASSIGN args_list { DeclAssign($1, List.rev $3)    }
+  | id_list ASSIGN args_list { Assign(List.rev $1, List.rev $3)         }
+  | id_list INIT   args_list { Init(List.rev $1, List.rev $3)           }
+
 expr_opt:
     /* nothing */ { Noexpr }
   | expr          { $1 }
@@ -170,11 +175,6 @@ expr:
   | MAKE LPAREN CHAN chan_typ RPAREN  { Make($4)   }
   | MAKE LPAREN CHAN chan_typ COMMA expr RPAREN  { MakeBuffer($4, $6)   }
   | CLOSE LPAREN ID RPAREN { Close($3)  }
-
-assign_stmt:
-  | vdecl ASSIGN args_list { DeclAssign($1, List.rev $3)    }
-  | id_list ASSIGN args_list { Assign(List.rev $1, List.rev $3)         }
-  | id_list INIT   args_list { Init(List.rev $1, List.rev $3)           }
 
 args_opt:
     /* nothing */ { [] }
