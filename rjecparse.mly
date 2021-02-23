@@ -119,6 +119,7 @@ stmt_list:
 
 stmt:
     expr SEMI                               { Expr $1               }
+  | vdecl SEMI                              { $1                    }
   | assign_stmt SEMI                        { AssignStmt $1         }
   | RETURN args_opt SEMI                    { Return $2             }
   | LBRACE stmt_list RBRACE                 { Block(List.rev $2)    }
