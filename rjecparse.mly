@@ -71,10 +71,15 @@ typ:
     INT   { Int   }
   | BOOL  { Bool  }
   | CHAR  { Char }
-  | CHAN chan_typ           { Chan  }
+  | CHAN basic_typ           { Chan  }
   | LSQUARE RSQUARE typ { Array($3) }
   | ID    { Struct($1) }
   | FUNC LPAREN typ_formal_opt RPAREN typ_opt { Func($3, $5) }
+
+basic_typ:
+    INT   { Int   }
+  | BOOL  { Bool  }
+  | CHAR  { Char }
 
 typ_formal_opt:
     /* nothing */ { [] }
@@ -84,7 +89,7 @@ vdecl_typ:
     INT   { Int   }
   | BOOL  { Bool  }
   | CHAR  { Char }
-  | CHAN chan_typ                        { Chan  }
+  | CHAN basic_typ                        { Chan  }
   | LSQUARE ILIT RSQUARE typ { ArrayInit($2, $4) }
   | ID    { Struct($1) }
 
@@ -102,7 +107,7 @@ struct_typ:
     INT            { Int   }
   | BOOL           { Bool  }
   | CHAR           { Char  }
-  | CHAN chan_typ  { Chan  }
+  | CHAN basic_typ { Chan  }
 
 member_list:
     ID struct_typ SEMI             { [($2,$1)]     }
@@ -172,8 +177,8 @@ expr:
   | ID LSQUARE expr RSQUARE   { Subscript($1, $3) }
   | ID ARROW expr    { Send($1, $3)           }
   | ARROW ID         { Recv($2)           }
-  | MAKE LPAREN CHAN chan_typ RPAREN  { Make($4)   }
-  | MAKE LPAREN CHAN chan_typ COMMA expr RPAREN  { MakeBuffer($4, $6)   }
+  | MAKE LPAREN CHAN basic_typ RPAREN { Make($4)   }
+  | MAKE LPAREN CHAN basic_typ COMMA expr RPAREN { MakeBuffer($4, $6)   }
   | CLOSE LPAREN ID RPAREN { Close($3)  }
 
 args_opt:
@@ -183,8 +188,3 @@ args_opt:
 args_list:
     expr                    { [$1] }
   | args_list COMMA expr { $3 :: $1 }
-
-chan_typ:
-    INT   { Int   }
-  | BOOL  { Bool  }
-  | CHAR  { Char }
