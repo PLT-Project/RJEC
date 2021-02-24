@@ -144,7 +144,12 @@ else_opt:
 
 case_list:
     CASE expr COLON stmt_list           { [($2, $4)] }
-  | case_list CASE expr COLON stmt_list { ($3, $5) :: $1 }
+  | case_list CASE case_stmt COLON stmt_list { ($3, $5) :: $1 }
+
+case_stmt:
+    ID ARROW expr    { Send($1, $3)       }
+  | ARROW ID         { Recv($2)           }
+  | assign_stmt      { AssignStmt $1      }
 
 assign_stmt:
   | vdecl ASSIGN args_list { DeclAssign($1, List.rev $3)    }
