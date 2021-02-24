@@ -103,15 +103,15 @@ id_list:
 sdecl:
     TYPE ID STRUCT LBRACE member_list RBRACE { Sdecl($2, $5) }
 
-struct_typ:
+/*struct_typ:
     INT            { Int   }
   | BOOL           { Bool  }
   | CHAR           { Char  }
-  | CHAN basic_typ { Chan  }
+  | CHAN basic_typ { Chan  }*/
 
 member_list:
-    ID struct_typ SEMI             { [($2,$1)]     }
-  | member_list ID struct_typ SEMI { ($3,$2) :: $1 }
+    ID basic_typ SEMI             { [($2,$1)]     }
+  | member_list ID basic_typ SEMI { ($3,$2) :: $1 }
 
 stmt_list:
     /* nothing */  { [] }
