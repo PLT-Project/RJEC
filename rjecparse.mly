@@ -125,9 +125,10 @@ stmt:
   | LBRACE stmt_list RBRACE                 { Block(List.rev $2)    }
   | IF expr LBRACE stmt_list RBRACE else_opt
                                       { If($2, Block(List.rev $4), $6) }
-  | FOR expr_opt SEMI expr SEMI expr_opt LBRACE stmt_list RBRACE
+  | FOR assign_stmt_opt SEMI expr SEMI assign_stmt_opt LBRACE stmt_list RBRACE
                                       { For($2, $4, $6, Block(List.rev $8))   }
-  | FOR expr LBRACE stmt_list RBRACE  { While($2, Block(List.rev $4))         }
+  | FOR expr LBRACE stmt_list RBRACE  
+                                      { While($2, Block(List.rev $4))         }
   | FOR LBRACE stmt_list RBRACE    { While(BoolLit(true), Block(List.rev $3)) }
   | SELECT LBRACE case_list RBRACE          { Select(List.rev $3)   }
   | DEFER expr SEMI                         { Defer($2)             }
@@ -150,9 +151,9 @@ assign_stmt:
   | id_list ASSIGN args_list { Assign(List.rev $1, List.rev $3)         }
   | id_list INIT   args_list { Init(List.rev $1, List.rev $3)           }
 
-expr_opt:
+assign_stmt_opt:
     /* nothing */ { Noexpr }
-  | expr          { $1 }
+  | assign_stmt   { $1 }
 
 expr:
     ILIT             { IntLit($1)             }
