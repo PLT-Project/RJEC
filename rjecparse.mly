@@ -9,7 +9,7 @@ let trd (_, _, t) = t
 %token PLUS MINUS TIMES DIVIDE MOD ASSIGN INIT
 %token NOT EQ LT LEQ AND OR
 %token RETURN IF ELSE FOR WHILE INT BOOL CHAR CHAN STRUCT
-%token VAR TYPE FUNC YEET MAKE CLOSE
+%token VAR FUNC YEET MAKE CLOSE
 %token ARROW BREAK CONTINUE DEFER SELECT CASE
 %token <int> ILIT
 %token <bool> BLIT
@@ -73,7 +73,7 @@ typ:
   | CHAR  { Char }
   | CHAN basic_typ           { Chan  }
   | LSQUARE RSQUARE typ { Array($3) }
-  | ID    { Struct($1) }
+  | STRUCT ID    { Struct($2) }
   | FUNC LPAREN typ_opt RPAREN return_types { Func($3, $5) }
 
 basic_typ:
@@ -89,9 +89,9 @@ vdecl_typ:
     INT   { Int   }
   | BOOL  { Bool  }
   | CHAR  { Char }
-  | CHAN basic_typ                        { Chan  }
-  | LSQUARE ILIT RSQUARE typ { ArrayInit($2, $4) }
-  | ID    { Struct($1) }
+  | CHAN basic_typ                       { Chan  }
+  | LSQUARE expr RSQUARE typ { ArrayInit($2, $4) }
+  | STRUCT ID    { Struct($2) }
 
 vdecl:
     VAR id_list vdecl_typ { Vdecl($3, List.rev $2) }
@@ -101,7 +101,7 @@ id_list:
   | id_list COMMA ID { $3 :: $1 }
 
 sdecl:
-    TYPE ID STRUCT LBRACE member_list RBRACE { Sdecl($2, $5) }
+    STRUCT ID LBRACE member_list RBRACE { Sdecl($2, $4) }
 
 /*struct_typ:
     INT            { Int   }
@@ -160,6 +160,10 @@ expr:
   | SLIT	           { StrLit($1)             }
   | CLIT	           { CharLit($1)            }
   | BLIT             { BoolLit($1)            }
+  | LSQUARE expr RSQUARE typ LBRACE args_list RBRACE
+                     { ArrLit($2, $4, $6)     }
+  | STRUCT ID LBRACE element_list_opt RBRACE
+                     { StructLit($2, $4)      }
   | ID               { Id($1)                 }
   | expr PLUS   expr { Binop($1, Add,   $3)   }
   | expr MINUS  expr { Binop($1, Sub,   $3)   }
@@ -180,7 +184,7 @@ expr:
   | ID ARROW expr    { Send($1, $3)           }
   | ARROW ID         { Recv($2)           }
   | MAKE LPAREN CHAN basic_typ RPAREN { Make($4)   }
-  | MAKE LPAREN CHAN basic_typ COMMA expr RPAREN { MakeBuffer($4, $6)   }
+  | MAKE LPAREN CHAN basic_typ COMMA expr RPAREN { MakeBuffered($4, $6)   }
   | CLOSE LPAREN ID RPAREN { Close($3)  }
 
 args_opt:
@@ -190,3 +194,11 @@ args_opt:
 args_list:
     expr                    { [$1] }
   | args_list COMMA expr { $3 :: $1 }
+
+element_list_opt:
+    /* nothing */ { [] }
+  | element_list  { List.rev $1 }
+
+element_list:
+    ID COLON expr                      { [($1,$3)]     }
+  | element_list COMMA ID COLON expr   { ($3,$5) :: $1 }
