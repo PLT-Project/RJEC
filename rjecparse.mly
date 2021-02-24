@@ -143,7 +143,7 @@ else_opt:
   | ELSE LBRACE stmt_list RBRACE                      { List.rev $3 }
 
 case_list:
-    CASE expr COLON stmt_list           { [($2, $4)] }
+    CASE case_stmt COLON stmt_list           { [($2, $4)] }
   | case_list CASE case_stmt COLON stmt_list { ($3, $5) :: $1 }
 
 case_stmt:
