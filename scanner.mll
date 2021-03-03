@@ -48,7 +48,6 @@ rule token = parse
 | "struct" { STRUCT }
 | "var"    { VAR }
 | "func"   { FUNC }
-| "type"   { TYPE }
 | "yeet"   { YEET }
 | "make"   { MAKE }
 | "close"  { CLOSE }
