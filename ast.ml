@@ -1,46 +1,78 @@
 (* Abstract Syntax Tree and functions for printing it *)
 
-type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
-          And | Or
+type op = Add | Sub | Mult | Div | Mod | Equal | Less | Leq | And | Or
 
 type uop = Neg | Not
 
-type typ = Int | Bool | Float | Void
+type typ = Int | Bool | Char
+  | Chan of typ
+  | Array of typ
+  | Struct of string
+  | Func of typ list * typ list
 
 type bind = typ * string
 
 type expr =
-    Literal of int
-  | Fliteral of string
+    IntLit of int
+  | StrLit of string
+  | CharLit of string
   | BoolLit of bool
+  | ArrLit of expr * typ * expr list
+  | StructLit of string * (string * expr) list
   | Id of string
   | Binop of expr * op * expr
   | Unop of uop * expr
-  | Assign of string * expr
   | Call of string * expr list
+  | Access of string * string
+  | Subscript of string * expr
+  | Send of string * expr
+  | Recv of string
+  | Make of typ
+  | MakeBuffered of typ * expr
+  | Close of string
   | Noexpr
+
+type vdecl_typ = Int | Bool | Char
+  | Chan of typ
+  | ArrayInit of expr * typ
+  | Struct of string
+
+type vdecl = Vdecl of vdecl_typ * string list
+
+type assign_stmt =
+    DeclAssign of vdecl * expr list
+  | Assign of string list * expr list
+  | Init of string list * expr list
 
 type stmt =
     Block of stmt list
   | Expr of expr
-  | Return of expr
+  | VdeclStmt of vdecl
+  | AssignStmt of assign_stmt
+  | Return of expr list
   | If of expr * stmt * stmt
-  | For of expr * expr * expr * stmt
+  | For of (assign_stmt option) * expr * (assign_stmt option) * stmt
   | While of expr * stmt
+  | Select of (stmt * stmt list) list
+  | Defer of expr
+  | Yeet of expr
+  | Break
+  | Continue
 
 type func_decl = {
     typ : typ;
     fname : string;
     formals : bind list;
-    locals : bind list;
     body : stmt list;
   }
 
-type program = bind list * func_decl list
+type sdecl = Sdecl of string * (typ * string) list
+
+type program = vdecl list * func_decl list * sdecl list
 
 (* Pretty-printing functions *)
 
-let string_of_op = function
+(*let string_of_op = function
     Add -> "+"
   | Sub -> "-"
   | Mult -> "*"
@@ -103,4 +135,4 @@ let string_of_fdecl fdecl =
 
 let string_of_program (vars, funcs) =
   String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
-  String.concat "\n" (List.map string_of_fdecl funcs)
+  String.concat "\n" (List.map string_of_fdecl funcs)*)

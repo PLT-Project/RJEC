@@ -119,7 +119,7 @@ stmt_list:
 
 stmt:
     expr SEMI                               { Expr $1               }
-  | vdecl SEMI                              { $1                    }
+  | vdecl SEMI                              { VdeclStmt $1          }
   | assign_stmt SEMI                        { AssignStmt $1         }
   | RETURN args_opt SEMI                    { Return $2             }
   | LBRACE stmt_list RBRACE                 { Block(List.rev $2)    }
@@ -137,10 +137,10 @@ stmt:
   | CONTINUE SEMI                           { Continue              }
 
 else_opt:
-    %prec NOELSE                                               { [] }
+    %prec NOELSE                                        { Block([]) }
   | ELSE IF expr LBRACE stmt_list RBRACE else_opt
                                    { If($3, Block(List.rev $5), $7) }
-  | ELSE LBRACE stmt_list RBRACE                      { List.rev $3 }
+  | ELSE LBRACE stmt_list RBRACE               { Block(List.rev $3) }
 
 case_list:
     CASE case_stmt COLON stmt_list           { [($2, $4)] }
