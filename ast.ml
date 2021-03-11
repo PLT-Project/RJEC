@@ -27,8 +27,7 @@ type expr =
   | Subscript of string * expr
   | Send of string * expr
   | Recv of string
-  | Make of typ
-  | MakeBuffered of typ * expr
+  | Make of typ * (expr option)
   | Close of string
   | Noexpr
 
@@ -52,7 +51,6 @@ type stmt =
   | Return of expr list
   | If of expr * stmt * stmt
   | For of (assign_stmt option) * expr * (assign_stmt option) * stmt
-  | While of expr * stmt
   | Select of (stmt * stmt list) list
   | Defer of expr
   | Yeet of expr

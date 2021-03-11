@@ -128,8 +128,9 @@ stmt:
   | FOR assign_stmt_opt SEMI expr SEMI assign_stmt_opt LBRACE stmt_list RBRACE
                                       { For($2, $4, $6, Block(List.rev $8))   }
   | FOR expr LBRACE stmt_list RBRACE  
-                                      { While($2, Block(List.rev $4))         }
-  | FOR LBRACE stmt_list RBRACE    { While(BoolLit(true), Block(List.rev $3)) }
+                                    { For(None, $2, None, Block(List.rev $4)) }
+  | FOR LBRACE stmt_list RBRACE    
+                         { For(None, BoolLit(true), None, Block(List.rev $3)) }
   | SELECT LBRACE case_list RBRACE          { Select(List.rev $3)   }
   | DEFER expr SEMI                         { Defer($2)             }
   | YEET expr SEMI                          { Yeet($2)              }
@@ -188,8 +189,8 @@ expr:
   | ID LSQUARE expr RSQUARE   { Subscript($1, $3) }
   | ID ARROW expr    { Send($1, $3)           }
   | ARROW ID         { Recv($2)           }
-  | MAKE LPAREN CHAN basic_typ RPAREN { Make($4)   }
-  | MAKE LPAREN CHAN basic_typ COMMA expr RPAREN { MakeBuffered($4, $6)   }
+  | MAKE LPAREN CHAN basic_typ RPAREN          { Make($4, None)   }
+  | MAKE LPAREN CHAN basic_typ COMMA expr RPAREN { Make($4, $6)   }
   | CLOSE LPAREN ID RPAREN { Close($3)  }
 
 args_opt:
