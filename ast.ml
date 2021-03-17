@@ -58,29 +58,27 @@ type stmt =
   | Continue
 
 type func_decl = {
-    typ : typ;
+    types : typ list;
     fname : string;
     formals : bind list;
     body : stmt list;
   }
 
-type sdecl = Sdecl of string * (typ * string) list
+type sdecl = Sdecl of string * bind list
 
 type program = vdecl list * func_decl list * sdecl list
 
 (* Pretty-printing functions *)
 
-(*let string_of_op = function
+let string_of_op = function
     Add -> "+"
   | Sub -> "-"
   | Mult -> "*"
   | Div -> "/"
+  | Mod -> "%"
   | Equal -> "=="
-  | Neq -> "!="
   | Less -> "<"
   | Leq -> "<="
-  | Greater -> ">"
-  | Geq -> ">="
   | And -> "&&"
   | Or -> "||"
 
@@ -88,49 +86,67 @@ let string_of_uop = function
     Neg -> "-"
   | Not -> "!"
 
+let rec string_of_typ = function
+    Array(t) -> string_of_typ t ^ "[]"
+  | Int -> "int"
+  | Bool -> "bool"
+  | Char -> "char"
+  | Struct(t) -> t
+  | Func(p, r) -> "func(" ^ String.concat ", " (List.map string_of_typ p) ^ ")"
+        ^ "(" ^ String.concat ", " (List.map string_of_typ r) ^ ")"
+  | Chan(t) -> "chan " ^ string_of_typ t 
+
 let rec string_of_expr = function
-    Literal(l) -> string_of_int l
-  | Fliteral(l) -> l
+    IntLit(l) -> string_of_int l
+  | StrLit(l) -> l
+  | CharLit(l) -> l
   | BoolLit(true) -> "true"
   | BoolLit(false) -> "false"
+  | ArrLit(s, t, el) -> "[" ^ string_of_expr s ^ "]" ^ string_of_typ t
+      ^ "{" ^ String.concat ", " (List.map string_of_expr el) ^ "}"
+  | StructLit(n, m) -> "struct " ^ n ^ "{" ^ String.concat ", "
+      (List.map (fun (n, v) -> (n ^ ": " ^ string_of_expr (v))) m) ^ "}"
   | Id(s) -> s
   | Binop(e1, o, e2) ->
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
   | Unop(o, e) -> string_of_uop o ^ string_of_expr e
-  | Assign(v, e) -> v ^ " = " ^ string_of_expr e
+  (*| Assign(v, e) -> v ^ " = " ^ string_of_expr e*)
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
+  | Access(s, m) -> s ^ "." ^ m
+  | Subscript(a, i) -> a ^ "[" ^ string_of_expr i ^ "]"
+  | Send(c, e) -> c ^ "<-" ^ string_of_expr e
+  | Recv(c) -> "<-" ^ c
+  | Make(t, e) -> "make" ^ "(" ^ "chan " ^ string_of_typ t ^
+      (match e with None -> "" | Some(ex) -> "," ^ string_of_expr ex) ^ ")"
+  | Close(c) -> "close" ^ "(" ^ c ^ ")"
   | Noexpr -> ""
 
 let rec string_of_stmt = function
     Block(stmts) ->
       "{\n" ^ String.concat "" (List.map string_of_stmt stmts) ^ "}\n"
   | Expr(expr) -> string_of_expr expr ^ ";\n";
-  | Return(expr) -> "return " ^ string_of_expr expr ^ ";\n";
+  | Return(expr) -> "return " ^
+      String.concat ", " (List.map string_of_expr expr) ^ ";\n"
   | If(e, s, Block([])) -> "if (" ^ string_of_expr e ^ ")\n" ^ string_of_stmt s
   | If(e, s1, s2) ->  "if (" ^ string_of_expr e ^ ")\n" ^
       string_of_stmt s1 ^ "else\n" ^ string_of_stmt s2
-  | For(e1, e2, e3, s) ->
+  (*| For(e1, e2, e3, s) ->
       "for (" ^ string_of_expr e1  ^ " ; " ^ string_of_expr e2 ^ " ; " ^
-      string_of_expr e3  ^ ") " ^ string_of_stmt s
-  | While(e, s) -> "while (" ^ string_of_expr e ^ ") " ^ string_of_stmt s
-
-let string_of_typ = function
-    Int -> "int"
-  | Bool -> "bool"
-  | Float -> "float"
-  | Void -> "void"
+      string_of_expr e3  ^ ") " ^ string_of_stmt s*)
+  | Break -> "break;\n"
+  | Continue -> "continue;\n"
+  | _ -> "??????\n" (* TODO: implement *)
 
 let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id ^ ";\n"
 
 let string_of_fdecl fdecl =
-  string_of_typ fdecl.typ ^ " " ^
   fdecl.fname ^ "(" ^ String.concat ", " (List.map snd fdecl.formals) ^
+  ") (" ^ String.concat ", " (List.map string_of_typ fdecl.types) ^
   ")\n{\n" ^
-  String.concat "" (List.map string_of_vdecl fdecl.locals) ^
   String.concat "" (List.map string_of_stmt fdecl.body) ^
   "}\n"
 
 let string_of_program (vars, funcs) =
   String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
-  String.concat "\n" (List.map string_of_fdecl funcs)*)
+  String.concat "\n" (List.map string_of_fdecl funcs)
