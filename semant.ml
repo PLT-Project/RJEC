@@ -166,7 +166,8 @@ let check (globals, functions, structs) =
             in (check_assign ft et err, e')
           in 
           let args' = List.map2 check_call fd.formals args
-          in (Func([], []), SCall(fname, args'))
+          in (Func(List.map (fun (t, s) -> t) fd.formals, fd.types),
+                SCall(fname, args'))
         | _ -> raise (Failure ("not yet implemented"))
     in
 
