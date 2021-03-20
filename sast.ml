@@ -11,7 +11,7 @@ and sx =
   | SId of string
   | SBinop of sexpr * op * sexpr
   | SUnop of uop * sexpr
-  | SAssign of string * sexpr
+  (*| SAssign of string * sexpr*)
   | SCall of string * sexpr list
   | SNoexpr
 
@@ -34,17 +34,18 @@ type sprogram = bind list * sfunc_decl list
 
 (* Pretty-printing functions *)
 
-(*let rec string_of_sexpr (t, e) =
+let rec string_of_sexpr (t, e) =
   "(" ^ string_of_typ t ^ " : " ^ (match e with
-    SLiteral(l) -> string_of_int l
+    SIntLit(l) -> string_of_int l
+  | SStrLit(l) -> l
+  | SCharLit(l) -> l
   | SBoolLit(true) -> "true"
   | SBoolLit(false) -> "false"
-  | SFliteral(l) -> l
   | SId(s) -> s
   | SBinop(e1, o, e2) ->
       string_of_sexpr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_sexpr e2
   | SUnop(o, e) -> string_of_uop o ^ string_of_sexpr e
-  | SAssign(v, e) -> v ^ " = " ^ string_of_sexpr e
+  (*| SAssign(v, e) -> v ^ " = " ^ string_of_sexpr e*)
   | SCall(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_sexpr el) ^ ")"
   | SNoexpr -> ""
@@ -65,13 +66,14 @@ let rec string_of_sstmt = function
   | SWhile(e, s) -> "while (" ^ string_of_sexpr e ^ ") " ^ string_of_sstmt s
 
 let string_of_sfdecl fdecl =
-  string_of_typ fdecl.styp ^ " " ^
   fdecl.sfname ^ "(" ^ String.concat ", " (List.map snd fdecl.sformals) ^
+  ") (" ^ String.concat ", " (List.map string_of_typ fdecl.stypes) ^
   ")\n{\n" ^
-  String.concat "" (List.map string_of_vdecl fdecl.slocals) ^
   String.concat "" (List.map string_of_sstmt fdecl.sbody) ^
   "}\n"
 
-let string_of_sprogram (vars, funcs) =
-  String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
-  String.concat "\n" (List.map string_of_sfdecl funcs)*)
+let string_of_globals (t, id) = string_of_typ t ^ " " ^ id ^ ";\n"
+
+let string_of_sprogram (vars, funcs, structs) =
+  String.concat "" (List.map string_of_globals vars) ^ "\n" ^
+  String.concat "\n" (List.map string_of_sfdecl funcs)

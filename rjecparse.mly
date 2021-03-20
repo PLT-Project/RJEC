@@ -94,14 +94,14 @@ vdecl_typ:
   | STRUCT ID    { Struct($2) }
 
 vdecl:
-    VAR id_list vdecl_typ { Vdecl($3, List.rev $2) }
+    VAR id_list vdecl_typ { ($3, List.rev $2) }
 
 id_list:
     ID { [$1] }
   | id_list COMMA ID { $3 :: $1 }
 
 sdecl:
-    STRUCT ID LBRACE member_list RBRACE { Sdecl($2, $4) }
+    STRUCT ID LBRACE member_list RBRACE { ($2, $4) }
 
 /*struct_typ:
     INT            { Int   }
