@@ -38,10 +38,10 @@ program:
   decls EOF { $1 }
 
 decls:
-   /* nothing */ { ([], [], [])               }
- | decls vdecl SEMI { (($2 :: fst $1), snd $1, trd $1) }
- | decls fdecl { (fst $1, ($2 :: snd $1), trd $1) }
- | decls sdecl { (fst $1, snd $1, ($2 :: trd $1)) }
+   /* nothing */ { ([], ([], []))               }
+ | decls vdecl SEMI { (($2 :: fst $1), (fst (snd $1), snd (snd $1))) }
+ | decls fdecl { (fst $1, (($2 :: fst (snd $1)), snd (snd $1))) }
+ | decls sdecl { (fst $1, (fst (snd $1), ($2 :: snd (snd $1)))) }
 
 fdecl:
    FUNC ID LPAREN formals_opt RPAREN return_types LBRACE stmt_list RBRACE
@@ -71,7 +71,7 @@ typ:
     INT   { Int   }
   | BOOL  { Bool  }
   | CHAR  { Char }
-  | CHAN basic_typ           { Chan  }
+  | CHAN basic_typ           { Chan($2)  }
   | LSQUARE RSQUARE typ { Array($3) }
   | STRUCT ID    { Struct($2) }
   | FUNC LPAREN typ_opt RPAREN return_types { Func($3, $5) }
@@ -89,19 +89,19 @@ vdecl_typ:
     INT   { Int   }
   | BOOL  { Bool  }
   | CHAR  { Char }
-  | CHAN basic_typ                       { Chan  }
+  | CHAN basic_typ                       { Chan($2)  }
   | LSQUARE expr RSQUARE typ { ArrayInit($2, $4) }
   | STRUCT ID    { Struct($2) }
 
 vdecl:
-    VAR id_list vdecl_typ { Vdecl($3, List.rev $2) }
+    VAR id_list vdecl_typ { ($3, List.rev $2) }
 
 id_list:
     ID { [$1] }
   | id_list COMMA ID { $3 :: $1 }
 
 sdecl:
-    STRUCT ID LBRACE member_list RBRACE { Sdecl($2, $4) }
+    STRUCT ID LBRACE member_list RBRACE { ($2, $4) }
 
 /*struct_typ:
     INT            { Int   }
@@ -131,7 +131,7 @@ stmt:
                                     { For(None, $2, None, Block(List.rev $4)) }
   | FOR LBRACE stmt_list RBRACE    
                          { For(None, BoolLit(true), None, Block(List.rev $3)) }
-  | SELECT LBRACE case_list RBRACE          { Select(List.rev $3)   }
+  /*| SELECT LBRACE case_list RBRACE          { Select(List.rev $3)   }*/
   | DEFER expr SEMI                         { Defer($2)             }
   | YEET expr SEMI                          { Yeet($2)              }
   | BREAK SEMI                              { Break                 }
@@ -143,14 +143,14 @@ else_opt:
                                    { If($3, Block(List.rev $5), $7) }
   | ELSE LBRACE stmt_list RBRACE               { Block(List.rev $3) }
 
-case_list:
+/*case_list:
     CASE case_stmt COLON stmt_list           { [($2, $4)] }
   | case_list CASE case_stmt COLON stmt_list { ($3, $5) :: $1 }
 
 case_stmt:
     ID ARROW expr    { Send($1, $3)       }
   | ARROW ID         { Recv($2)           }
-  | assign_stmt      { AssignStmt $1      }
+  | assign_stmt      { AssignStmt $1      }*/
 
 assign_stmt:
   | vdecl ASSIGN args_list { DeclAssign($1, List.rev $3)    }
@@ -158,8 +158,7 @@ assign_stmt:
   | id_list INIT   args_list { Init(List.rev $1, List.rev $3)           }
 
 assign_stmt_opt:
-    /* nothing */ { Noexpr }
-  | assign_stmt   { $1 }
+    assign_stmt   { Some($1) }
 
 expr:
     ILIT             { IntLit($1)             }
@@ -190,7 +189,7 @@ expr:
   | ID ARROW expr    { Send($1, $3)           }
   | ARROW ID         { Recv($2)           }
   | MAKE LPAREN CHAN basic_typ RPAREN          { Make($4, None)   }
-  | MAKE LPAREN CHAN basic_typ COMMA expr RPAREN { Make($4, $6)   }
+  | MAKE LPAREN CHAN basic_typ COMMA expr RPAREN { Make($4, Some($6))   }
   | CLOSE LPAREN ID RPAREN { Close($3)  }
 
 args_opt:

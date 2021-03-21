@@ -36,7 +36,7 @@ type vdecl_typ = Int | Bool | Char
   | ArrayInit of expr * typ
   | Struct of string
 
-type vdecl = Vdecl of vdecl_typ * string list
+type vdecl = vdecl_typ * string list
 
 type assign_stmt =
     DeclAssign of vdecl * expr list
@@ -64,9 +64,9 @@ type func_decl = {
     body : stmt list;
   }
 
-type sdecl = Sdecl of string * bind list
+type sdecl = string * bind list
 
-type program = vdecl list * func_decl list * sdecl list
+type program = vdecl list * (func_decl list * sdecl list)
 
 (* Pretty-printing functions *)
 
@@ -87,7 +87,7 @@ let string_of_uop = function
   | Not -> "!"
 
 let rec string_of_typ = function
-    Array(t) -> string_of_typ t ^ "[]"
+    Array(t) -> "[]" ^ string_of_typ t
   | Int -> "int"
   | Bool -> "bool"
   | Char -> "char"
@@ -138,7 +138,16 @@ let rec string_of_stmt = function
   | Continue -> "continue;\n"
   | _ -> "??????\n" (* TODO: implement *)
 
-let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id ^ ";\n"
+let string_of_vdecl_typ = function
+  ArrayInit(i, t) -> "[" ^ string_of_expr i ^ "]" ^ string_of_typ t
+| Int -> "int"
+| Bool -> "bool"
+| Char -> "char"
+| Struct(t) -> t
+| Chan(t) -> "chan " ^ string_of_typ t 
+
+let string_of_vdecl (vd : vdecl) : string = "var " ^ String.concat ", " (snd vd)
+    ^ string_of_vdecl_typ (fst vd) ^ " " ^ ";\n"
 
 let string_of_fdecl fdecl =
   fdecl.fname ^ "(" ^ String.concat ", " (List.map snd fdecl.formals) ^
@@ -147,6 +156,8 @@ let string_of_fdecl fdecl =
   String.concat "" (List.map string_of_stmt fdecl.body) ^
   "}\n"
 
-let string_of_program (vars, funcs) =
+let string_of_program (vars, (funcs, structs)) =
   String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
   String.concat "\n" (List.map string_of_fdecl funcs)
+
+(* TODO: struct printing *)

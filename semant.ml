@@ -10,7 +10,19 @@ module StringMap = Map.Make(String)
 
    Check each global variable, then check each function *)
 
-let check (globals, functions, structs) =
+let check (globals, (functions, structs)) =
+
+  let vdecl_typ_to_typ : vdecl_typ -> typ = function
+      Int -> Int
+    | Bool -> Bool
+    | Char -> Char
+    | Chan(t) -> Chan(t)
+    | ArrayInit(e, t) -> Array(t)
+    | Struct(s) -> Struct(s)
+  in
+  let flatten_global global = List.map
+    (fun name -> (vdecl_typ_to_typ (fst global), name)) (snd global)
+  in
 
   (* Add global names to symbol table *)
   let add_global map vd = 
@@ -23,8 +35,7 @@ let check (globals, functions, structs) =
        | _ ->  StringMap.add n typ map 
   in
   let check_global map global =
-    List.fold_left add_global map
-      (List.map (fun name -> ((fst global), name)) (snd global))
+    List.fold_left add_global map (flatten_global global)
   in
   let global_decls = List.fold_left check_global StringMap.empty globals
   in
@@ -209,4 +220,5 @@ let check (globals, functions, structs) =
 	SBlock(sl) -> sl
       | _ -> raise (Failure ("internal error: block didn't become a block?"))
     }
-  in (globals, List.map check_function functions)
+  in (List.flatten (List.map flatten_global globals),
+        List.map check_function functions, structs)

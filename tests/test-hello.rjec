@@ -1,0 +1,4 @@
+func main() {
+  printi(321);
+  printi(888);
+}
