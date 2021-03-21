@@ -10,7 +10,7 @@ module StringMap = Map.Make(String)
 
    Check each global variable, then check each function *)
 
-let check (globals, functions, structs) =
+let check (globals, (functions, structs)) =
 
   let vdecl_typ_to_typ : vdecl_typ -> typ = function
       Int -> Int
