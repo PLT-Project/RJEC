@@ -65,7 +65,7 @@ let translate (globals, functions, structs) =
       let name = fdecl.sfname
       and formal_types = 
 	Array.of_list (List.map (fun (t,_) -> ltype_of_typ t) fdecl.sformals)
-      in let ftype = L.function_type void_t formal_types in
+      in let ftype = L.function_type i32_t formal_types in
     (* TODO: actually handle the multiple return types. was formerly:
       in let ftype = L.function_type (ltype_of_typ fdecl.styp) formal_types in
     *)
@@ -241,7 +241,8 @@ let translate (globals, functions, structs) =
 
     (* Add a return if the last block falls off the end *)
     (* TODO: fix later *)
-    add_terminal builder L.build_ret_void (*(match fdecl.styp with
+    add_terminal builder (L.build_ret (L.const_int i32_t 0))
+      (*(match fdecl.styp with
         A.Void -> L.build_ret_void
       | t -> L.build_ret (L.const_int (ltype_of_typ t) 0))*)
   in
