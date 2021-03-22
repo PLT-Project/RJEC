@@ -2,7 +2,6 @@
 
 %{
 open Ast
-let trd (_, _, t) = t 
 %}
 
 %token SEMI LPAREN RPAREN LBRACE RBRACE LSQUARE RSQUARE DOT COMMA COLON
