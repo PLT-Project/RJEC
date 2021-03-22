@@ -1,4 +1,11 @@
 func main() {
+  prints("hello world");
   printi(321);
   printi(888);
+  printb(true);
+  printb(false);
+  printc('r');
+  printc('J');
+  printc('e');
+  printc('C');
 }

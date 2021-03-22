@@ -113,7 +113,8 @@ let translate (globals, functions, structs) =
     (* Construct code for an expression; return its value *)
     let rec expr builder ((_, e) : sexpr) = match e with
     SIntLit i  -> L.const_int i32_t i
-      | SStrLit s   -> L.const_stringz context s (* TODO: verify context *)
+      | SStrLit s   -> L.build_global_stringptr s "strlit" builder
+      | SCharLit c  -> L.const_int i8_t (Char.code (String.get c 0))
       | SBoolLit b  -> L.const_int i1_t (if b then 1 else 0)
       | SNoexpr     -> L.const_int i32_t 0
       | SId s       -> L.build_load (lookup s) s builder
