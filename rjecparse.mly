@@ -157,7 +157,8 @@ assign_stmt:
   | id_list INIT   args_list { Init(List.rev $1, List.rev $3)           }
 
 assign_stmt_opt:
-    assign_stmt   { Some($1) }
+     /* nothing */ { None }
+  |  assign_stmt   { Some($1) }
 
 expr:
     ILIT             { IntLit($1)             }
