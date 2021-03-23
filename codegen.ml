@@ -167,6 +167,9 @@ let translate (globals, functions, structs) =
       | SCall ("prints", [e]) -> 
         L.build_call printf_func [| str_format_str ; (expr builder e) |]
         "printf" builder
+      (*| SCall ("printf", e_list) -> 
+       L.build_call printf_func (Array.of_list (List.map (expr builder) e_list))
+        "printf" builder*)
       | SCall (f, args) ->
          let (fdef, fdecl) = StringMap.find f function_decls in
 	 let llargs = List.rev (List.map (expr builder) (List.rev args)) in
