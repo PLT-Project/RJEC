@@ -1,0 +1,11 @@
+func main() {
+  if true {
+    printi(42);
+  } 
+  else {
+    printi(8);
+  }
+
+  prints("Hi friends");
+
+}

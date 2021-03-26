@@ -1,0 +1,8 @@
+func main() {
+  if true {
+    printi(321);
+    printi(888);
+  }  
+  prints("Hi friends");
+
+}

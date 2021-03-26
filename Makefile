@@ -8,7 +8,8 @@ test : all testall.sh
 # to test linking external code
 
 .PHONY : all
-all : rjec.native
+all : rjec.native printbool.o
+
 
 # "make rjec.native" compiles the compiler
 #
@@ -26,4 +27,4 @@ rjec.native :
 .PHONY : clean
 clean :
 	ocamlbuild -clean
-	rm -rf testall.log ocamlllvm *.diff
+	rm -rf testall.log *.o ocamlllvm *.diff

@@ -53,10 +53,10 @@ let translate (globals, functions, structs) =
   let printf_func : L.llvalue = 
       L.declare_function "printf" printf_t the_module in
 
-  (*let printbig_t : L.lltype =
-      L.function_type i32_t [| i32_t |] in
-  let printbig_func : L.llvalue =
-      L.declare_function "printbig" printbig_t the_module in*)
+  let printbool_t : L.lltype =
+      L.function_type i32_t [| i1_t |] in
+  let printbool_func : L.llvalue =
+      L.declare_function "printbool" printbool_t the_module in
 
   (* Define each function (arguments and return type) so we can 
      call it even before we've created its body *)
@@ -158,7 +158,7 @@ let translate (globals, functions, structs) =
 	  (match op with
 	    A.Neg                  -> L.build_neg
       | A.Not                  -> L.build_not) e' "tmp" builder
-      | SCall ("printi", [e]) | SCall ("printb", [e]) ->
+      | SCall ("printi", [e])  ->
 	  L.build_call printf_func [| int_format_str ; (expr builder e) |]
 	    "printf" builder
       | SCall ("printc", [e]) -> 
@@ -167,6 +167,9 @@ let translate (globals, functions, structs) =
       | SCall ("prints", [e]) -> 
         L.build_call printf_func [| str_format_str ; (expr builder e) |]
         "printf" builder
+      | SCall ("printb", [e]) ->
+        L.build_call printbool_func [| (expr builder e) |]
+        "printbool" builder 
       (*| SCall ("printf", e_list) -> 
        L.build_call printf_func (Array.of_list (List.map (expr builder) e_list))
         "printf" builder*)
