@@ -207,6 +207,11 @@ let translate (globals, functions, structs) =
                               (* Build return statement *)
                             | _ -> L.build_ret (expr builder e) builder);
                      builder*)
+      | SAssignStmt s -> let assign_stmt builder = function
+            SAssign sl -> List.fold_left (fun builder (s, e) -> let e' = expr builder e in
+            ignore(L.build_store e' (lookup s) builder) ; builder) builder sl 
+          | _         -> raise (Failure "not yet implemented")
+        in assign_stmt builder s 
       | SIf (predicate, then_stmt, else_stmt) ->
          let bool_val = expr builder predicate in
 	 let merge_bb = L.append_block context "merge" the_function in

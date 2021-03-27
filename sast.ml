@@ -11,17 +11,21 @@ and sx =
   | SId of string
   | SBinop of sexpr * op * sexpr
   | SUnop of uop * sexpr
-  (*| SAssign of string * sexpr*)
   | SCall of string * sexpr list
   | SNoexpr
+
+type sassign_stmt = 
+  | SAssign of (string * sexpr) list
 
 type sstmt =
     SBlock of sstmt list
   | SExpr of sexpr
+  | SAssignStmt of sassign_stmt 
   | SReturn of sexpr
   | SIf of sexpr * sstmt * sstmt
   | SFor of sexpr * sexpr * sexpr * sstmt
   | SWhile of sexpr * sstmt
+
 
 type sfunc_decl = {
     stypes : typ list;

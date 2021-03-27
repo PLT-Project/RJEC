@@ -110,7 +110,6 @@ let rec string_of_expr = function
   | Binop(e1, o, e2) ->
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
   | Unop(o, e) -> string_of_uop o ^ string_of_expr e
-  (*| Assign(v, e) -> v ^ " = " ^ string_of_expr e*)
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
   | Access(s, m) -> s ^ "." ^ m
@@ -126,6 +125,10 @@ let rec string_of_stmt = function
     Block(stmts) ->
       "{\n" ^ String.concat "" (List.map string_of_stmt stmts) ^ "}\n"
   | Expr(expr) -> string_of_expr expr ^ ";\n";
+  | AssignStmt(s) -> let string_of_assign = function  
+       Assign(v, e) -> (String.concat ", " v) ^ " = " ^ (String.concat ", " (List.map string_of_expr e)) ^ ";\n"
+      | _           ->  "??????\n"
+    in string_of_assign s
   | Return(expr) -> "return " ^
       String.concat ", " (List.map string_of_expr expr) ^ ";\n"
   | If(e, s, Block([])) -> "if (" ^ string_of_expr e ^ ")\n" ^ string_of_stmt s

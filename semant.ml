@@ -112,17 +112,19 @@ let check (globals, (functions, structs)) =
        if lvaluet = rvaluet then lvaluet else raise (Failure err)
     in   
 
+
     (* Build local symbol table of variables for this function *)
     let symbols = List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
 	                global_decls (func.formals)
     in
 
+
     (* Return a variable from our local symbol table *)
     let type_of_identifier s =
       try StringMap.find s symbols
       with Not_found -> raise (Failure ("undeclared identifier " ^ s))
-    in
 
+    in 
     (* Return a semantically-checked expression, i.e., with a type *)
     let rec expr : expr -> sexpr = function
         IntLit  l -> (Int, SIntLit l)
@@ -132,12 +134,6 @@ let check (globals, (functions, structs)) =
       (* TODO: composite literals *)
       (*| Noexpr     -> (Void, SNoexpr)*)
       | Id s       -> (type_of_identifier s, SId s)
-      (*| Assign(var, e) as ex -> 
-          let lt = type_of_identifier var
-          and (rt, e') = expr e in
-          let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^ 
-            string_of_typ rt ^ " in " ^ string_of_expr ex
-          in (check_assign lt rt err, SAssign(var, (rt, e')))*)
       | Unop(op, e) as ex -> 
           let (t, e') = expr e in
           let ty = match op with
@@ -181,6 +177,13 @@ let check (globals, (functions, structs)) =
                 SCall(fname, args'))
         | _ -> raise (Failure ("not yet implemented"))
     in
+    
+    let check_assign_var var e =
+      let lt = type_of_identifier var and (rt, e') = expr e in
+       let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^ 
+      string_of_typ rt (* ^ " in " ^ string_of_stmt (AssignStmt(Assign(var, e))) *)
+      in check_assign lt rt err ; (var, (rt, e'))
+    in 
 
     let check_bool_expr e = 
       let (t', e') = expr e
@@ -202,6 +205,11 @@ let check (globals, (functions, structs)) =
 	    
 	    (* A block is correct if each statement is correct and nothing
 	       follows any Return statement.  Nested blocks are flattened. *)
+      | AssignStmt s -> 
+          let check_assign_stmt = function
+              Assign(vl, el)  -> SAssign (List.map2 check_assign_var vl el)
+            | _               -> raise (Failure ("not yet implemented"))
+          in SAssignStmt(check_assign_stmt s)
       | Block sl -> 
           let rec check_stmt_list = function
               [Return _ as s] -> [check_stmt s]

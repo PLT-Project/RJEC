@@ -1,0 +1,7 @@
+var i, j int;
+
+func main() {
+  i = 10; 
+  j = 42;
+  printi(i + j);
+}
