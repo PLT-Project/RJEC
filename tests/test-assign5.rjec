@@ -1,0 +1,13 @@
+/* TO DO: either implement or raise error */
+var i, j int;
+
+func main() {
+    printi(i);
+    printi(j);
+    i, j = 5, 6;
+    printi(i);
+    printi(j);
+    /* i, j = j, i; */ 
+    printi(i);
+    printi(j);
+}

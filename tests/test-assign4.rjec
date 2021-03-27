@@ -1,0 +1,13 @@
+var i, j, k int;
+
+func main() {
+    printi(i);
+    printi(j);
+    i, j = 5, 6;
+    k = i+j;
+    printi(i);
+    i = i+1;
+    printi(i);
+    printi(j);
+    printi(k);
+}
