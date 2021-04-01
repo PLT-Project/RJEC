@@ -27,4 +27,4 @@ rjec.native :
 .PHONY : clean
 clean :
 	ocamlbuild -clean
-	rm -rf testall.log *.o ocamlllvm *.diff
+	rm -rf testall.log *.o ocamlllvm *.diff *.ll *.s *.exe

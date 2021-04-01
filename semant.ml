@@ -112,30 +112,54 @@ let check (globals, (functions, structs)) =
        if lvaluet = rvaluet then lvaluet else raise (Failure err)
     in   
 
+    (* Build local symbol table of variables for this function
+    let global_decls_copy = List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
+	                StringMap.empty global_decls
+    in *)
+      
+    let add_to_scope (v_type : typ) (v_name : string) 
+        (scope : typ StringMap.t list) =
+      let map = List.hd scope in
+      try
+        match (StringMap.find v_name map) with
+          _ -> raise (Failure (v_name ^ " already declared"))
+      with Not_found ->
+        let newMap = StringMap.add v_name v_type map in
+        newMap::List.tl scope
+    in 
 
-    (* Build local symbol table of variables for this function *)
-    let symbols = List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
-	                global_decls (func.formals)
-    in
+    let create_scope list =
+      let rec helper m = function
+          [] -> m
+        | (t, n)::tl -> 
+          let new_m = StringMap.add n t m in 
+          helper new_m tl
+      in helper StringMap.empty list
+    in 
 
+    let scope = [ create_scope func.formals; global_decls ] 
+    in 
 
     (* Return a variable from our local symbol table *)
-    let type_of_identifier s =
-      try StringMap.find s symbols
-      with Not_found -> raise (Failure ("undeclared identifier " ^ s))
-
+    let rec type_of_identifier (v_name : string) (scope : typ StringMap.t list) =
+      try
+        StringMap.find v_name (List.hd scope)
+      with Not_found -> match List.tl scope with
+          [] -> raise (Failure("undeclared reference " ^ v_name))
+        | tail -> type_of_identifier v_name tail
     in 
+
     (* Return a semantically-checked expression, i.e., with a type *)
-    let rec expr : expr -> sexpr = function
+    let rec expr (scope : typ StringMap.t list) (e : expr) : sexpr = match e with
         IntLit  l -> (Int, SIntLit l)
       | StrLit l  -> (Array(Char), SStrLit l)
       | CharLit l  -> (Char, SCharLit l)
       | BoolLit l  -> (Bool, SBoolLit l)
       (* TODO: composite literals *)
       (*| Noexpr     -> (Void, SNoexpr)*)
-      | Id s       -> (type_of_identifier s, SId s)
+      | Id s       -> (type_of_identifier s scope, SId s)
       | Unop(op, e) as ex -> 
-          let (t, e') = expr e in
+          let (t, e') = expr scope e in
           let ty = match op with
             Neg when t = Int -> t
           | Not when t = Bool -> Bool
@@ -144,8 +168,8 @@ let check (globals, (functions, structs)) =
                                  " in " ^ string_of_expr ex))
           in (ty, SUnop(op, (t, e')))
       | Binop(e1, op, e2) as e -> 
-          let (t1, e1') = expr e1 
-          and (t2, e2') = expr e2 in
+          let (t1, e1') = expr scope e1 
+          and (t2, e2') = expr scope e2 in
           (* All binary operators require operands of the same type *)
           let same = t1 = t2 in
           (* Determine expression type based on operator and operand types *)
@@ -167,7 +191,7 @@ let check (globals, (functions, structs)) =
             raise (Failure ("expecting " ^ string_of_int param_length ^ 
                             " arguments in " ^ string_of_expr call))
           else let check_call (ft, _) e = 
-            let (et, e') = expr e in 
+            let (et, e') = expr scope e in 
             let err = "illegal argument found " ^ string_of_typ et ^
               " expected " ^ string_of_typ ft ^ " in " ^ string_of_expr e
             in (check_assign ft et err, e')
@@ -178,26 +202,29 @@ let check (globals, (functions, structs)) =
         | _ -> raise (Failure ("not yet implemented"))
     in
     
-    let check_assign_var var e =
-      let lt = type_of_identifier var and (rt, e') = expr e in
+    let check_assign_var scope var e =
+      let lt = type_of_identifier var scope and (rt, e') = expr scope e in
        let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^ 
       string_of_typ rt (* ^ " in " ^ string_of_stmt (AssignStmt(Assign(var, e))) *)
       in check_assign lt rt err ; (var, (rt, e'))
     in 
 
-    let check_bool_expr e = 
-      let (t', e') = expr e
+    let check_bool_expr scope e = 
+      let (t', e') = expr scope e
       and err = "expected Boolean expression in " ^ string_of_expr e
       in if t' != Bool then raise (Failure err) else (t', e') 
     in
 
     (* Return a semantically-checked statement i.e. containing sexprs *)
-    let rec check_stmt = function
-        Expr e -> SExpr (expr e)
-      | If(p, b1, b2) -> SIf(check_bool_expr p, check_stmt b1, check_stmt b2)
+    let rec check_stmt scope = function
+        Expr e -> (SExpr(expr scope e), scope)
+      | If(p, b1, b2) -> 
+        let (sstmt1, _) = check_stmt scope b1 
+        and (sstmt2, _) = check_stmt scope b2 in
+        (SIf(check_bool_expr scope p, sstmt1, sstmt2), scope)
       (*| For(e1, e2, e3, st) ->
-	  SFor(expr e1, check_bool_expr e2, expr e3, check_stmt st)
-      | Return e -> let (t, e') = expr e in
+	  SFor(expr scope e1, check_bool_expr scope e2, expr scope e3, check_stmt st)
+      | Return e -> let (t, e') = expr scope e in
         if t = func.typ then SReturn (t, e') 
         else raise (
 	  Failure ("return gives " ^ string_of_typ t ^ " expected " ^
@@ -207,25 +234,36 @@ let check (globals, (functions, structs)) =
 	       follows any Return statement.  Nested blocks are flattened. *)
       | AssignStmt s -> 
           let check_assign_stmt = function
-              Assign(vl, el)  -> SAssign (List.map2 check_assign_var vl el)
+              Assign(vl, el)  -> SAssign (List.map2 (check_assign_var scope) vl el)
             | _               -> raise (Failure ("not yet implemented"))
-          in SAssignStmt(check_assign_stmt s)
+          in (SAssignStmt(check_assign_stmt s), scope)
+      | VdeclStmt s -> 
+          let (t, nl) = s in
+          let (nscope, vdecls) = List.fold_left (fun (scope, vdecls) n -> 
+            (add_to_scope (vdecl_typ_to_typ t) n scope, (n, t)::vdecls)
+          ) (scope, []) nl
+          in (SVdecl(vdecls), nscope)
       | Block sl -> 
-          let rec check_stmt_list = function
-              [Return _ as s] -> [check_stmt s]
+          let bscope = (create_scope []) :: scope in
+          let rec check_stmt_list scope = function
+              [Return _ as s] -> 
+                let (ret, _) = check_stmt scope s in ([ret], scope)
             | Return _ :: _   -> raise (Failure "nothing may follow a return")
-            | Block sl :: ss  -> check_stmt_list (sl @ ss) (* Flatten blocks *)
-            | s :: ss         -> check_stmt s :: check_stmt_list ss
-            | []              -> []
-          in SBlock(check_stmt_list sl)
+            | s :: ss         -> 
+              let (ret, nscope) = check_stmt scope s in
+              let (ret2, nscope2) = check_stmt_list nscope ss in
+              (ret :: ret2, nscope2)
+            | []              -> ([], scope)
+          in let (bret, _) = check_stmt_list bscope sl
+          in (SBlock(bret), scope)
       | _ -> raise (Failure ("not yet implemented"))
 
     in (* body of check_function *)
     { stypes = func.types;
       sfname = func.fname;
       sformals = func.formals;
-      sbody = match check_stmt (Block func.body) with
-	SBlock(sl) -> sl
+      sbody = match check_stmt scope (Block func.body) with
+	(SBlock(sl), _) -> sl
       | _ -> raise (Failure ("internal error: block didn't become a block?"))
     }
   in (List.flatten (List.map flatten_global globals),
