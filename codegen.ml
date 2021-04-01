@@ -180,6 +180,16 @@ let translate (globals, functions, structs) =
 
     let rec stmt builder = function
 	      SBlock sl -> List.fold_left stmt builder sl
+      | SVdecl vdl -> 
+        let declare_var (n, t) =   
+          let local = L.build_alloca (ltype_of_typ t) n builder in
+          let default_value = match t with
+              Int | Bool | Char -> L.const_int (ltype_of_typ t) 0
+            | _ -> raise(Failure("Not implemented"))
+          in L.build_store default_value local builder;
+          (* TODO: add to the symbol table?/manage scope? *)
+        in List.map declare_var vdl
+
       | SExpr e -> ignore(expr builder e); builder 
       | SReturn e -> ignore(L.build_ret_void builder); builder
                     (* TODO: fix multiple return types later 

@@ -15,7 +15,7 @@ and sx =
   | SNoexpr
 
 type svdecl_typ = SInt | SBool | SChar
-  | SArray of svdecl_typ
+  | SArrayInit of svdecl_typ * sexpr
   | SChan of svdecl_typ
   | SStruct of string
 
@@ -30,7 +30,7 @@ type sstmt =
   | SIf of sexpr * sstmt * sstmt
   | SFor of sexpr * sexpr * sexpr * sstmt
   | SWhile of sexpr * sstmt
-  | SVdecl of (string * vdecl_typ) list
+  | SVdeclStmt of (string * vdecl_typ) list
 
 type sfunc_decl = {
     stypes : typ list;
