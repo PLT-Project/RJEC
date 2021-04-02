@@ -1,0 +1,10 @@
+var i int;
+
+func main() {
+  i = 42;
+  printi(i);
+  var i bool;
+  printb(i);
+  i = true;
+  printb(i);
+}

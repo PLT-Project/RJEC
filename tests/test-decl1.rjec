@@ -1,0 +1,13 @@
+func main() {
+
+  var i int;
+  var b bool;
+  var j int;
+
+  i = 42;
+  j = 10;
+  printi(i + j);
+  printb(b);
+  b = true;
+  printb(b);
+}
