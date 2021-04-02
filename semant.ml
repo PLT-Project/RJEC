@@ -20,6 +20,16 @@ let check (globals, (functions, structs)) =
     | ArrayInit(e, t) -> Array(t)
     | Struct(s) -> Struct(s)
   in
+
+  (* let vdecl_typ_to_svdecl_typ : vdecl_typ -> svdecl_typ = function
+      Int -> SInt
+    | Bool -> SBool
+    | Char -> SChar
+    | Chan(t) -> SChan(t)
+    | ArrayInit(e, t) -> SArrayInit(e, t)
+    | Struct(s) -> SStruct(s)
+  in *)
+
   let flatten_global global = List.map
     (fun name -> (vdecl_typ_to_typ (fst global), name)) (snd global)
   in
@@ -242,7 +252,7 @@ let check (globals, (functions, structs)) =
           let (nscope, vdecls) = List.fold_left (fun (scope, vdecls) n -> 
             (add_to_scope (vdecl_typ_to_typ t) n scope, (n, t)::vdecls)
           ) (scope, []) nl
-          in (SVdecl(vdecls), nscope)
+          in (SVdeclStmt(vdecls), nscope)
       | Block sl -> 
           let bscope = (create_scope []) :: scope in
           let rec check_stmt_list scope = function
