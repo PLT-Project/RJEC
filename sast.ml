@@ -8,10 +8,12 @@ and sx =
   | SStrLit of string
   | SCharLit of string
   | SBoolLit of bool
+  | SStructLit of (string * sexpr) list
   | SId of string
   | SBinop of sexpr * op * sexpr
   | SUnop of uop * sexpr
   | SCall of string * sexpr list
+  | SAccess of string * string 
   | SNoexpr
 
 type svdecl_typ = SInt | SBool | SChar

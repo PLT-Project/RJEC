@@ -21,6 +21,12 @@ let check (globals, (functions, structs)) =
     | Struct(s) -> Struct(s)
   in
 
+  let default_vals_in_sexpr : typ -> typ * sx = function
+      Int -> (Int, SIntLit 0)
+    | Bool -> (Bool, SBoolLit false)
+    | Char -> (Char, SCharLit "\x00")
+  in
+
   (* let vdecl_typ_to_svdecl_typ : vdecl_typ -> svdecl_typ = function
       Int -> SInt
     | Bool -> SBool
@@ -61,15 +67,17 @@ let check (globals, (functions, structs)) =
   in
 
   (* Add structs to symbol table *)
-  let add_struct map sd = 
+  let add_struct smap sd = 
     let dup_err = "duplicate struct " ^ (fst sd)
     and make_err er = raise (Failure er)
     and n = fst sd
     in match n with (* No duplicate globals *)
-       | _ when StringMap.mem n map -> make_err dup_err  
-       | _ -> check_binds "struct member in definition" (snd sd);
-        StringMap.add n sd map
-  in
+      | _ when StringMap.mem n global_decls -> make_err ("global variable with same name already declared: " ^ (fst sd))
+      | _ when StringMap.mem n smap -> make_err dup_err 
+      | _ -> check_binds "struct member in definition" (snd sd);
+          let members = List.fold_left (fun m (t, n) -> StringMap.add n t m) StringMap.empty (snd sd) in
+          StringMap.add n members smap
+    in
   let struct_decls = List.fold_left add_struct StringMap.empty structs
   in
 
@@ -110,6 +118,11 @@ let check (globals, (functions, structs)) =
     with Not_found -> raise (Failure ("unrecognized function " ^ s))
   in
 
+  let find_struct s = 
+    try StringMap.find s struct_decls
+    with Not_found -> raise (Failure ("unrecognized struct " ^ s))
+  in
+
   let _ = find_func "main" in (* Ensure "main" is defined *)
 
   let check_function func =
@@ -121,11 +134,6 @@ let check (globals, (functions, structs)) =
     let check_assign lvaluet rvaluet err =
        if lvaluet = rvaluet then lvaluet else raise (Failure err)
     in   
-
-    (* Build local symbol table of variables for this function
-    let global_decls_copy = List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
-	                StringMap.empty global_decls
-    in *)
       
     let add_to_scope (v_type : typ) (v_name : string) 
         (scope : typ StringMap.t list) =
@@ -165,6 +173,20 @@ let check (globals, (functions, structs)) =
       | StrLit l  -> (Array(Char), SStrLit l)
       | CharLit l  -> (Char, SCharLit l)
       | BoolLit l  -> (Bool, SBoolLit l)
+      | StructLit(sn, ml) -> 
+        let smembers = find_struct sn in
+        let check_member sname members vm (n, e) = 
+          let (t, e') = expr scope e in
+          match n with 
+            _ when ((StringMap.mem n members) && (t = StringMap.find n members)) -> StringMap.add n (t, e') vm
+          | _ -> raise(Failure("unknown member " ^ n ^ " of type " ^ (string_of_typ t)
+                               ^ " in definition of struct " ^ sname)) in
+        let member_vals = List.fold_left (check_member sn smembers) StringMap.empty ml in
+        let full_member_vals = List.fold_left (fun m (n, t) -> match n with
+            _ when StringMap.mem n m -> m
+          | _ -> StringMap.add n (default_vals_in_sexpr t) m
+        ) member_vals (StringMap.bindings smembers) in
+        (Struct(sn), SStructLit(StringMap.bindings full_member_vals))
       (* TODO: composite literals *)
       (*| Noexpr     -> (Void, SNoexpr)*)
       | Id s       -> (type_of_identifier s scope, SId s)
@@ -194,6 +216,12 @@ let check (globals, (functions, structs)) =
                        string_of_typ t1 ^ " " ^ string_of_op op ^ " " ^
                        string_of_typ t2 ^ " in " ^ string_of_expr e))
           in (ty, SBinop((t1, e1'), op, (t2, e2')))
+      | Access(sn, mn) -> 
+        let smembers = find_struct sn in
+        let _ = match sn with 
+          _ when StringMap.mem mn smembers -> ()
+        | _ -> raise(Failure("unknown field " ^ mn ^ " in struct " ^ sn)) in
+        (Struct(sn), SAccess(sn, mn))
       | Call(fname, args) as call -> 
           let fd = find_func fname in
           let param_length = List.length fd.formals in

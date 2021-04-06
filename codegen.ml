@@ -32,11 +32,27 @@ let translate (globals, functions, structs) =
   and i1_t       = L.i1_type     context
   and void_t     = L.void_type   context in
 
+  let struct_decls : ((A.typ StringMap.t) * L.lltype) StringMap.t = 
+    let add_struct m (n, ml) = 
+      let ltype_of_basic_typ ((t, n) : (A.typ * string)) : L.lltype = match t with
+          A.Int   -> i32_t
+        | A.Bool  -> i1_t
+        | A.Char ->  i8_t
+        | _ -> raise(Failure("Struct member typ not basic -- should've been checked in parser!\n"))
+      in
+      let member_typs = Array.of_list (List.map ltype_of_basic_typ ml) in
+      let struct_t = L.struct_type context member_typs in
+      let member_names = List.fold_left (fun m (t, n) -> StringMap.add n t m) StringMap.empty ml in
+      StringMap.add n (member_names, struct_t) m
+    in List.fold_left add_struct StringMap.empty structs
+  in
+
   (* Return the LLVM type for a RJEC type *)
   let ltype_of_typ : A.typ -> L.lltype = function
       A.Int   -> i32_t
     | A.Bool  -> i1_t
     | A.Char ->  i8_t
+    | A.Struct(n) -> let (_, struct_t) = StringMap.find n struct_decls in struct_t
   in
 
   (* Create a map of global variables after creating each *)
@@ -119,11 +135,11 @@ let translate (globals, functions, structs) =
       | Chan(t) -> Chan(t)
       | ArrayInit(e, t) -> Array(t)
       | Struct(s) -> Struct(s)
+    in 
 
-     in 
     (* Construct code for an expression; return its value *)
     let rec expr m builder ((_, e) : sexpr) = match e with
-    SIntLit i  -> L.const_int i32_t i
+        SIntLit i  -> L.const_int i32_t i
       | SStrLit s   -> L.build_global_stringptr s "strlit" builder
       | SCharLit c  -> L.const_int i8_t (Char.code (String.get c 0))
       | SBoolLit b  -> L.const_int i1_t (if b then 1 else 0)
