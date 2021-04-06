@@ -233,13 +233,15 @@ let check (globals, (functions, structs)) =
         and (sstmt2, _) = check_stmt scope b2 in
         (SIf(check_bool_expr scope p, sstmt1, sstmt2), scope)
       (*| For(e1, e2, e3, st) ->
-	  SFor(expr scope e1, check_bool_expr scope e2, expr scope e3, check_stmt st)
-      | Return e -> let (t, e') = expr scope e in
-        if t = func.typ then SReturn (t, e') 
-        else raise (
-	  Failure ("return gives " ^ string_of_typ t ^ " expected " ^
-		   string_of_typ func.typ ^ " in " ^ string_of_expr e))*)
-	    
+	  SFor(expr scope e1, check_bool_expr scope e2, expr scope e3, check_stmt st)*)
+      | Return el -> 
+        let check_return_typ e rt = 
+          let (t, e') = expr scope e in
+          if t = rt then (t, e')
+          else raise (Failure ("return gives " ^ string_of_typ t ^ " expected " ^
+                      string_of_typ rt ^ " in " ^ string_of_expr e))
+        in
+        (SReturn(List.map2 check_return_typ el func.types), scope)
 	    (* A block is correct if each statement is correct and nothing
 	       follows any Return statement.  Nested blocks are flattened. *)
       | AssignStmt s -> 

@@ -110,15 +110,6 @@ let translate (globals, functions, structs) =
                    with Not_found -> match List.tl ml with
                       [] -> raise (Failure("undeclared reference " ^ n))
                     | tail -> lookup n tail
-
-(*     let rec type_of_identifier (v_name : string) (scope : typ StringMap.t list) =
-      try
-        StringMap.find v_name (List.hd scope)
-      with Not_found -> match List.tl scope with
-          [] -> raise (Failure("undeclared reference " ^ v_name))
-        | tail -> type_of_identifier v_name tail*)
-
-
     in
 
     let vdecl_typ_to_typ : A.vdecl_typ -> A.typ = function

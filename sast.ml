@@ -26,7 +26,7 @@ type sstmt =
     SBlock of sstmt list
   | SExpr of sexpr
   | SAssignStmt of sassign_stmt 
-  | SReturn of sexpr
+  | SReturn of sexpr list
   | SIf of sexpr * sstmt * sstmt
   | SFor of sexpr * sexpr * sexpr * sstmt
   | SWhile of sexpr * sstmt
@@ -64,7 +64,7 @@ let rec string_of_sstmt = function
     SBlock(stmts) ->
       "{\n" ^ String.concat "" (List.map string_of_sstmt stmts) ^ "}\n"
   | SExpr(expr) -> string_of_sexpr expr ^ ";\n";
-  | SReturn(expr) -> "return " ^ string_of_sexpr expr ^ ";\n";
+  | SReturn(exprs) -> "return " ^ (String.concat ", " (List.map string_of_sexpr exprs)) ^ ";\n";
   | SIf(e, s, SBlock([])) ->
       "if (" ^ string_of_sexpr e ^ ")\n" ^ string_of_sstmt s
   | SIf(e, s1, s2) ->  "if (" ^ string_of_sexpr e ^ ")\n" ^
