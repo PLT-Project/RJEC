@@ -60,7 +60,7 @@ formal_list:
 return_types:
     /* nothing */          {   [] }
   | typ                    { [$1] }
-  | LPAREN typ_list RPAREN {   $2 }
+/*  | LPAREN typ_list RPAREN {   $2 } */
 
 typ_list:
     typ                   { [$1]     }

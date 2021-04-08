@@ -85,9 +85,12 @@ let translate (globals, functions, structs) =
       and formal_types = 
 	      Array.of_list (List.map (fun (t,_) -> ltype_of_typ t) fdecl.sformals)
       in let ftype = L.function_type i32_t formal_types in
-    (* TODO: actually handle the multiple return types. was formerly:
-      in let ftype = L.function_type (ltype_of_typ fdecl.styp) formal_types in
-    *)
+    (* TODO: actually handle the multiple return types. *)
+      let rt_type = match fdecl.stypes with
+          [] -> i32_t
+        | t :: [] -> ltype_of_typ t 
+        | _ -> raise(Failure("Multiple return types not implemented yet")) in
+      let ftype = L.function_type rt_type formal_types in
       StringMap.add name (L.define_function name ftype the_module, fdecl) m in
     List.fold_left function_decl StringMap.empty functions in
   
@@ -199,9 +202,10 @@ let translate (globals, functions, structs) =
         let (fdef, fdecl) = StringMap.find f function_decls in
         let llargs = List.rev (List.map (expr m builder) (List.rev args)) in
         (* TODO: fix multiple return types later *)
-        let result = "" (*(match fdecl.styp with 
-                              A.Void -> ""
-                            | _ -> f ^ "_result")*) in
+        let result = (match fdecl.stypes with 
+                              [] -> ""
+                            | _ :: [] -> f ^ "_result"
+                            | _ -> raise(Failure("Multiple return types not implemented yet"))) in
           L.build_call fdef (Array.of_list llargs) result builder
       | SAccess(n, sn, mn) -> 
         let struct_val = expr m builder (Struct(sn), SId(n)) in
@@ -261,14 +265,14 @@ let translate (globals, functions, structs) =
             in (builder, new_m::(List.tl mm)) 
           in List.fold_left declare_var (builder, m) vdl
       | SExpr e -> ignore(expr m builder e); (builder, m) 
-      | SReturn e -> ignore(L.build_ret_void builder); (builder, m)
-                    (* TODO: fix multiple return types later 
-                    ignore(match fdecl.styp with
-                              (* Special "return nothing" instr *)
-                              A.Void -> L.build_ret_void builder 
-                              (* Build return statement *)
-                            | _ -> L.build_ret (expr builder e) builder);
-                     builder*)
+      | SReturn e -> (* TODO: fix multiple return types later *)
+                    ignore(match fdecl.stypes with
+                          (* Special "return nothing" instr *)
+                          [] -> L.build_ret (L.const_int i32_t 0) builder 
+                          (* Build return statement *)
+                        | _ :: [] -> L.build_ret (expr m builder (List.hd e)) builder
+                        | _ -> raise(Failure("Multiple return types not implemented yet")));
+                     (builder, m)
       | SAssignStmt s -> let assign_stmt builder = function
             SAssign sl -> 
               ((List.fold_left (fun builder (s, e) -> 

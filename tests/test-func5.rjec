@@ -1,0 +1,36 @@
+struct dummy {
+    x int;
+    y int;
+    z bool;
+    t char;
+}
+
+func foo (x int, y int, z struct dummy) struct dummy {
+    var i struct dummy;
+    i = struct dummy {
+        x : x,
+        y : y,
+        z : z.z,
+        t : z.t
+    };
+    z = struct dummy {
+        x : 5
+    };
+    return i;
+}
+
+func main () {
+    var i, j struct dummy;
+    j = struct dummy {
+        x : 10,
+        t : 'z'
+    };
+    i = foo(2, 3, j);
+
+    printi(i.x);
+    printi(i.y);
+    printb(i.z);
+    printc(i.t);
+
+    printi(j.x);
+}

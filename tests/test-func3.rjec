@@ -1,0 +1,16 @@
+func gcd (a int, b int) int {
+    if (a < b) {
+        return gcd(b, a);
+    }
+    if (b == 0) {
+        return a;
+    }
+    return gcd(b, a % b);
+}
+
+func main () {
+    printi(gcd(32, 3));
+    printi(gcd(16, 56));
+    printi(gcd(869, 143));
+    printi(gcd(349, 1837));
+}

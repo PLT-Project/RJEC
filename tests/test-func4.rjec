@@ -1,0 +1,20 @@
+struct dummy {
+    x int;
+    y int;
+}
+
+func foo (x int, y int) struct dummy {
+    var i struct dummy;
+    i = struct dummy {
+        x : x,
+        y : y
+    };
+    return i;
+}
+
+func main () {
+    var i struct dummy;
+    i = foo(2, 3);
+    printi(i.x);
+    printi(i.y);
+}

@@ -1,0 +1,9 @@
+func foo (x int) int {
+    return x + 2;
+}
+
+func main() {
+    var i int;
+    i = foo(1);
+    printi(i);
+}

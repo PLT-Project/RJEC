@@ -228,9 +228,15 @@ let check (globals, (functions, structs)) =
               " expected " ^ string_of_typ ft ^ " in " ^ string_of_expr e
             in (check_assign ft et err, e')
           in 
-          let args' = List.map2 check_call fd.formals args
-          in (Func(List.map (fun (t, s) -> t) fd.formals, fd.types),
-                SCall(fname, args'))
+          let args' = List.map2 check_call fd.formals args in
+          (* fix multiple returns later *)
+          (* in (Func(List.map (fun (t, s) -> t) fd.formals, fd.types),
+                SCall(fname, args')) *)
+          let rt_type : typ = match fd.types with
+              [] -> Int
+            | t :: [] -> t
+            | _ -> raise(Failure("Multiple return types not implemented yet")) in
+          (rt_type, SCall(fname, args'))
         | _ -> raise (Failure ("not yet implemented"))
     in
     
@@ -257,6 +263,11 @@ let check (globals, (functions, structs)) =
       (*| For(e1, e2, e3, st) ->
 	  SFor(expr scope e1, check_bool_expr scope e2, expr scope e3, check_stmt st)*)
       | Return el -> 
+        if (List.length el <> List.length func.types) then 
+          raise(Failure("The function '" ^ func.fname ^ "' has " ^ 
+                        string_of_int (List.length func.types) ^
+                        " return types, but only " ^ string_of_int (List.length el) ^
+                        " expressions were returned"));
         let check_return_typ e rt = 
           let (t, e') = expr scope e in
           if t = rt then (t, e')

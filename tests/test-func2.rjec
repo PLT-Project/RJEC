@@ -1,0 +1,20 @@
+func isEven (x int, y bool) bool {
+    if (x % 2 == 0 && y) {
+        return true;
+    } else {
+        return false;
+    }
+    return true;
+}
+
+func foo (x int) {
+    printi(x % 4);
+}
+
+func main() {
+    printb(isEven(2, true));
+    printb(isEven(3, true));
+    printb(isEven(4, false));
+
+    printi(foo(3));
+}
