@@ -1,17 +1,14 @@
 struct foo {
     x int;
-    y bool;
-    z char;
+    y char;
 }
 
 func main() {
     var i struct foo;
     i = struct foo {
-        x : 1,
-        y : true,
-        z : 'a'
+        x : 12,
+        y : 'b'
     };
     printi(i.x);
-    printb(i.y);
-    printc(i.z);
+    printc(i.y);
 }

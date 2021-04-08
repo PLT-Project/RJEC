@@ -1,0 +1,11 @@
+struct foo {
+    x bool;
+    y int;
+}
+
+func main() {
+    var i struct foo;
+    
+    printb(i.x);
+    printi(i.y);
+}

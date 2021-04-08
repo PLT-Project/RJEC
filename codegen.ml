@@ -55,7 +55,7 @@ let translate (globals, functions, structs) =
       A.Int   -> i32_t
     | A.Bool  -> i1_t
     | A.Char ->  i8_t
-    | A.Struct(n) -> let (_, struct_t) = StringMap.find n struct_decls in struct_t
+    | A.Struct(n) -> snd (StringMap.find n struct_decls)
   in
 
   (* Create a map of global variables after creating each *)
@@ -146,6 +146,16 @@ let translate (globals, functions, structs) =
       | SStrLit s   -> L.build_global_stringptr s "strlit" builder
       | SCharLit c  -> L.const_int i8_t (Char.code (String.get c 0))
       | SBoolLit b  -> L.const_int i1_t (if b then 1 else 0)
+      | SStructLit(sn, ml) -> 
+        let (_, struct_t) = StringMap.find sn struct_decls in
+        let compare_by (n1, _) (n2, _) = compare n1 n2 in
+        let sorted_vals = List.map (fun (n, sexpr) -> expr m builder sexpr) (List.sort compare_by ml) in
+        let idxs = List.rev (generate_seq ((List.length sorted_vals) - 1)) in
+        let v = List.fold_left2 (fun agg i v -> 
+          L.build_insertvalue agg v i "tmp" builder) 
+        (L.const_null struct_t) idxs sorted_vals in
+        let local = L.build_alloca struct_t sn builder in 
+        ignore(L.build_store v local builder); local
       | SNoexpr     -> L.const_int i32_t 0
       | SId s       -> L.build_load (lookup s m) s builder
       | SBinop (e1, op, e2) ->
@@ -193,6 +203,14 @@ let translate (globals, functions, structs) =
                               A.Void -> ""
                             | _ -> f ^ "_result")*) in
           L.build_call fdef (Array.of_list llargs) result builder
+      | SAccess(n, sn, mn) -> 
+        let struct_val = expr m builder (Struct(sn), SId(n)) in
+        let (member_names, struct_t) = StringMap.find sn struct_decls in
+        let compare_by (n1, _) (n2, _) = compare n1 n2 in
+        let sorted_names = List.map (fun (n, _) -> n) (List.sort compare_by (StringMap.bindings member_names)) in
+        let name_idx_pairs = List.mapi (fun i n -> (n, i)) sorted_names in
+        let idx = snd (List.hd (List.filter (fun (n, _) -> n = mn) name_idx_pairs)) in
+        L.build_extractvalue struct_val idx mn builder
     in
     
     (* LLVM insists each basic block end with exactly one "terminator" 
@@ -251,11 +269,18 @@ let translate (globals, functions, structs) =
                             | _ -> L.build_ret (expr builder e) builder);
                      builder*)
       | SAssignStmt s -> let assign_stmt builder = function
-            SAssign sl -> ((List.fold_left (fun builder (s, e) -> let e' = expr m builder e in
-            ignore(L.build_store e' (lookup s m) builder) ; builder) builder sl), m)
+            SAssign sl -> 
+              ((List.fold_left (fun builder (s, e) -> 
+                let e' = expr m builder e in
+                let handle_assign = function
+                    (_, SStructLit(_, _)) -> 
+                      let v = L.build_load e' "tmp" builder in
+                      ignore(L.build_store v (lookup s m) builder); builder
+                  | _ -> ignore(L.build_store e' (lookup s m) builder); builder in
+                handle_assign(e)
+              ) builder sl), m)
           | _         -> raise (Failure "not yet implemented")
         in assign_stmt builder s 
-
 
       | SIf (predicate, then_stmt, else_stmt) ->
         let bool_val = expr m builder predicate in

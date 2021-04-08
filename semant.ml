@@ -26,16 +26,7 @@ let check (globals, (functions, structs)) =
     | Bool -> (Bool, SBoolLit false)
     | Char -> (Char, SCharLit "\x00")
   in
-
-  (* let vdecl_typ_to_svdecl_typ : vdecl_typ -> svdecl_typ = function
-      Int -> SInt
-    | Bool -> SBool
-    | Char -> SChar
-    | Chan(t) -> SChan(t)
-    | ArrayInit(e, t) -> SArrayInit(e, t)
-    | Struct(s) -> SStruct(s)
-  in *)
-
+  
   let flatten_global global = List.map
     (fun name -> (vdecl_typ_to_typ (fst global), name)) (snd global)
   in
@@ -186,7 +177,7 @@ let check (globals, (functions, structs)) =
             _ when StringMap.mem n m -> m
           | _ -> StringMap.add n (default_vals_in_sexpr t) m
         ) member_vals (StringMap.bindings smembers) in
-        (Struct(sn), SStructLit(StringMap.bindings full_member_vals))
+        (Struct(sn), SStructLit(sn, StringMap.bindings full_member_vals))
       (* TODO: composite literals *)
       (*| Noexpr     -> (Void, SNoexpr)*)
       | Id s       -> (type_of_identifier s scope, SId s)
@@ -216,12 +207,16 @@ let check (globals, (functions, structs)) =
                        string_of_typ t1 ^ " " ^ string_of_op op ^ " " ^
                        string_of_typ t2 ^ " in " ^ string_of_expr e))
           in (ty, SBinop((t1, e1'), op, (t2, e2')))
-      | Access(sn, mn) -> 
+      | Access(n, mn) -> 
+        let check_struct (t : typ) = match t with
+            Struct(n) -> n
+          | _ -> raise(Failure("Invalid syntax: access member field of non-struct object\n")) in
+        let sn = check_struct (type_of_identifier n scope) in
         let smembers = find_struct sn in
-        let _ = match sn with 
-          _ when StringMap.mem mn smembers -> ()
+        let t = match sn with 
+          _ when StringMap.mem mn smembers -> StringMap.find mn smembers
         | _ -> raise(Failure("unknown field " ^ mn ^ " in struct " ^ sn)) in
-        (Struct(sn), SAccess(sn, mn))
+        (t, SAccess(n, sn, mn))
       | Call(fname, args) as call -> 
           let fd = find_func fname in
           let param_length = List.length fd.formals in
