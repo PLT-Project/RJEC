@@ -26,7 +26,6 @@ let check (globals, (functions, structs)) =
     | Bool -> (Bool, SBoolLit false)
     | Char -> (Char, SCharLit "\x00")
   in
-  
   let flatten_global global = List.map
     (fun name -> (vdecl_typ_to_typ (fst global), name)) (snd global)
   in

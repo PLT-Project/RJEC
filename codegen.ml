@@ -154,7 +154,7 @@ let translate (globals, functions, structs) =
         let v = List.fold_left2 (fun agg i v -> 
           L.build_insertvalue agg v i "tmp" builder) 
         (L.const_null struct_t) idxs sorted_vals in
-        let local = L.build_alloca struct_t sn builder in 
+        let local = L.build_malloc struct_t sn builder in 
         ignore(L.build_store v local builder); local
       | SNoexpr     -> L.const_int i32_t 0
       | SId s       -> L.build_load (lookup s m) s builder
@@ -237,24 +237,25 @@ let translate (globals, functions, structs) =
 
       | SVdeclStmt vdl -> 
           let declare_var (builder, mm) (n, t) =   
-            let local = L.build_alloca (ltype_of_typ (vdecl_typ_to_typ t)) n builder in
             let store_default_val = function
-                A.Int | A.Bool | A.Char -> 
+                A.Int | A.Bool | A.Char ->
+                  let local = L.build_alloca (ltype_of_typ (vdecl_typ_to_typ t)) n builder in 
                   let default_value = L.const_int (ltype_of_typ (vdecl_typ_to_typ t)) 0 in
-                  L.build_store default_value local builder
+                  L.build_store default_value local builder; local
               | A.Struct(n)-> 
+                  let local = L.build_malloc (ltype_of_typ (vdecl_typ_to_typ t)) n builder in
                   let (member_names, struct_t) = StringMap.find n struct_decls in 
                   let compare_by (n1, _) (n2, _) = compare n1 n2 in
                   let members = List.sort compare_by 
                     (StringMap.bindings member_names) in
                   let idxs = List.rev (generate_seq ((List.length members) - 1)) in
                   let v = List.fold_left2 (fun agg i member -> 
-                    let (_, t) = member in
-                    (L.build_insertvalue agg (L.const_int (ltype_of_typ t) 0) i "tmp" builder))
+                    let (n, t) = member in
+                    (L.build_insertvalue agg (L.const_int (ltype_of_typ t) 0) i n builder))
                   (L.const_null struct_t) idxs members in
-                  L.build_store v local builder
+                  L.build_store v local builder; local
               | _ -> raise(Failure("Not implemented")) in
-            store_default_val t;
+            let local = store_default_val t in
             (* TODO: add to the symbol table?/manage scope? *)
             let new_m = StringMap.add n local (List.hd mm)
             in (builder, new_m::(List.tl mm)) 
