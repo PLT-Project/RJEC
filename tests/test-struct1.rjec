@@ -1,0 +1,9 @@
+struct foo {
+    x int;
+    y bool;
+    z char;
+}
+
+func main() {
+    var i struct foo;
+}

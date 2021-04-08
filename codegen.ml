@@ -32,6 +32,8 @@ let translate (globals, functions, structs) =
   and i1_t       = L.i1_type     context
   and void_t     = L.void_type   context in
 
+  let rec generate_seq n = if n >= 0 then (n :: (generate_seq (n-1))) else [] in
+  
   let struct_decls : ((A.typ StringMap.t) * L.lltype) StringMap.t = 
     let add_struct m (n, ml) = 
       let ltype_of_basic_typ ((t, n) : (A.typ * string)) : L.lltype = match t with
@@ -40,7 +42,8 @@ let translate (globals, functions, structs) =
         | A.Char ->  i8_t
         | _ -> raise(Failure("Struct member typ not basic -- should've been checked in parser!\n"))
       in
-      let member_typs = Array.of_list (List.map ltype_of_basic_typ ml) in
+      let compare_by (_, n1) (_, n2) = compare n1 n2 in
+      let member_typs = Array.of_list (List.map ltype_of_basic_typ (List.sort compare_by ml)) in
       let struct_t = L.struct_type context member_typs in
       let member_names = List.fold_left (fun m (t, n) -> StringMap.add n t m) StringMap.empty ml in
       StringMap.add n (member_names, struct_t) m
@@ -212,26 +215,32 @@ let translate (globals, functions, structs) =
             let (b, mm) = List.fold_left helper (builder, ml) sl 
             in (b, List.tl mm)
           in
-          stmt_list builder (StringMap.empty::m) sl 
-
+        stmt_list builder (StringMap.empty::m) sl 
 
       | SVdeclStmt vdl -> 
           let declare_var (builder, mm) (n, t) =   
             let local = L.build_alloca (ltype_of_typ (vdecl_typ_to_typ t)) n builder in
-            let default_value = match t with
-                Int | Bool | Char -> L.const_int (ltype_of_typ (vdecl_typ_to_typ t)) 0
-              | _ -> raise(Failure("Not implemented"))
-            in L.build_store default_value local builder;
+            let store_default_val = function
+                A.Int | A.Bool | A.Char -> 
+                  let default_value = L.const_int (ltype_of_typ (vdecl_typ_to_typ t)) 0 in
+                  L.build_store default_value local builder
+              | A.Struct(n)-> 
+                  let (member_names, struct_t) = StringMap.find n struct_decls in 
+                  let compare_by (n1, _) (n2, _) = compare n1 n2 in
+                  let members = List.sort compare_by 
+                    (StringMap.bindings member_names) in
+                  let idxs = List.rev (generate_seq ((List.length members) - 1)) in
+                  let v = List.fold_left2 (fun agg i member -> 
+                    let (_, t) = member in
+                    (L.build_insertvalue agg (L.const_int (ltype_of_typ t) 0) i "tmp" builder))
+                  (L.const_null struct_t) idxs members in
+                  L.build_store v local builder
+              | _ -> raise(Failure("Not implemented")) in
+            store_default_val t;
             (* TODO: add to the symbol table?/manage scope? *)
             let new_m = StringMap.add n local (List.hd mm)
-    
             in (builder, new_m::(List.tl mm)) 
-
           in List.fold_left declare_var (builder, m) vdl
-
-          (* TODO: MOVE TYP FUNCTION OUT OF HERE *)
-          (* PLEASE *)
-
       | SExpr e -> ignore(expr m builder e); (builder, m) 
       | SReturn e -> ignore(L.build_ret_void builder); (builder, m)
                     (* TODO: fix multiple return types later 
