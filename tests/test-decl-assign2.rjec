@@ -1,0 +1,13 @@
+func main() {
+
+    var x, y int = 42, 30;
+    printi(x);
+    printi(y);
+
+    var r, j, e, c char = 'r', 'j', 'e', 'c';
+    printc(r);
+    printc(j);
+    printc(e);
+    printc(c);
+
+}

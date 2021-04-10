@@ -1,0 +1,15 @@
+func main() {
+  var i,j int = 42, 30;
+  printi(i);
+  printi(j);
+
+  if true {
+      j = 60;
+      printi(j);
+      var i int = 52;
+      printi(i);
+  }
+  
+  printi(i);
+  printi(j);
+}

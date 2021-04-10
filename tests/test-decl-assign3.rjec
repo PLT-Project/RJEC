@@ -1,0 +1,16 @@
+struct foo {
+    x bool;
+    y int;
+}
+
+func main() {
+
+    var i struct foo = struct foo {
+        x : true,
+        y : 12
+    };
+    
+    printb(i.x);
+    printi(i.y);
+
+}
