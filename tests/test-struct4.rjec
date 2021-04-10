@@ -1,0 +1,17 @@
+struct foo {
+    x bool;
+    y int;
+    z bool;
+}
+
+func main() {
+    var i struct foo;
+    i.x = true;
+    i.y = 9;
+    i.z = true;
+    
+    printb(i.x);
+    printi(i.y);
+    printb(i.z);
+
+}

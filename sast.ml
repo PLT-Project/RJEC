@@ -22,7 +22,7 @@ type svdecl_typ = SInt | SBool | SChar
   | SStruct of string
 
 type sassign_stmt = 
-  | SAssign of (string * sexpr) list
+  | SAssign of (sexpr * sexpr) list 
   | SDeclAssign of ((string * vdecl_typ) list) * ((string * sexpr) list)
   | SInit of sassign_stmt list
 

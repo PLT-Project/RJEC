@@ -275,17 +275,32 @@ let translate (globals, functions, structs) =
                      (builder, m)
       | SAssignStmt s -> let assign_stmt builder = function
             SAssign sl -> 
-              ((List.fold_left (fun builder (s, e) -> 
-                let e' = expr m builder e in
-                let handle_assign = function
-                    (_, SStructLit(_, _)) -> 
-                      let v = L.build_load e' "tmp" builder in
-                      ignore(L.build_store v (lookup s m) builder); builder
-                  | _ -> ignore(L.build_store e' (lookup s m) builder); builder in
-                handle_assign(e)
-              ) builder sl), m)
+              List.map (fun (ee, e) -> 
+                (function 
+                    (_, SId(s)) -> 
+                      let e' = expr m builder e in
+                      let handle_assign = function
+                          (_, SStructLit(_, _)) -> 
+                            let v = L.build_load e' "tmp" builder in
+                            ignore(L.build_store v (lookup s m) builder); builder
+                        | _ -> ignore(L.build_store e' (lookup s m) builder); builder in
+                      handle_assign(e)
+      
+                  | (_, SAccess(n, sn, mn)) -> 
+                    let struct_val = L.build_load (lookup n m) n builder in 
+                    let (member_names, struct_t) = StringMap.find sn struct_decls in
+                    let compare_by (n1, _) (n2, _) = compare n1 n2 in
+                    let sorted_names = List.map (fun (n, _) -> n) (List.sort compare_by (StringMap.bindings member_names)) in
+                    let name_idx_pairs = List.mapi (fun i n -> (n, i)) sorted_names in
+                    let idx = snd (List.hd (List.filter (fun (n, _) -> n = mn) name_idx_pairs)) in
+                    let e' = expr m builder e in
+                    let v = L.build_insertvalue struct_val e' idx mn builder in 
+                    ignore(L.build_store v (lookup n m) builder); builder 
+                ) ee) sl; (builder, m)
+
           | SDeclAssign (vdl, assl) -> let (_, mm) = stmt m builder (SVdeclStmt vdl) in 
-                stmt mm builder (SAssignStmt(SAssign(assl)))
+                let new_assl = List.map (fun (s, e) -> ((vdecl_typ_to_typ (snd (List.hd vdl)), SId(s)), e)) assl in
+                stmt mm builder (SAssignStmt(SAssign(new_assl)))
           | SInit dal -> List.fold_left (fun (builder, m) da -> stmt m builder(SAssignStmt da)) (builder, m) dal 
           | _         -> raise (Failure "not yet implemented")
         in assign_stmt builder s 

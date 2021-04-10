@@ -152,9 +152,10 @@ case_stmt:
   | assign_stmt      { AssignStmt $1      }*/
 
 assign_stmt:
-  | vdecl ASSIGN args_list { DeclAssign($1, List.rev $3)    }
-  | id_list ASSIGN args_list { Assign(List.rev $1, List.rev $3)         }
-  | id_list INIT   args_list { Init(List.rev $1, List.rev $3)           }
+  | vdecl ASSIGN args_list            { DeclAssign($1, List.rev $3)    }
+  | args_list ASSIGN args_list        { Assign(List.rev $1, List.rev $3)         }
+  | args_list INIT   args_list          { Init(List.rev $1, List.rev $3)           }
+
 
 assign_stmt_opt:
      /* nothing */ { None }

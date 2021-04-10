@@ -41,8 +41,8 @@ type vdecl = vdecl_typ * string list
 
 type assign_stmt =
     DeclAssign of vdecl * expr list
-  | Assign of string list * expr list
-  | Init of string list * expr list
+  | Assign of expr list * expr list
+  | Init of expr list * expr list
 
 type stmt =
     Block of stmt list
@@ -127,7 +127,7 @@ let rec string_of_stmt = function
       "{\n" ^ String.concat "" (List.map string_of_stmt stmts) ^ "}\n"
   | Expr(expr) -> string_of_expr expr ^ ";\n";
   | AssignStmt(s) -> let string_of_assign = function  
-       Assign(v, e) -> (String.concat ", " v) ^ " = " ^ (String.concat ", " (List.map string_of_expr e)) ^ ";\n"
+       Assign(v, e) -> (String.concat ", " (List.map string_of_expr v)) ^ " = " ^ (String.concat ", " (List.map string_of_expr e)) ^ ";\n"
       | _           ->  "??????\n"
     in string_of_assign s
   | Return(expr) -> "return " ^

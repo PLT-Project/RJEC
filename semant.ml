@@ -288,16 +288,36 @@ let check (globals, (functions, structs)) =
 	       follows any Return statement.  Nested blocks are flattened. *)
       | AssignStmt s -> 
           let check_assign_stmt = function
-              Assign(vl, el)  -> (SAssign (List.map2 (check_assign_var scope) vl el), scope)
+              Assign(vl, el)  -> 
+                let helper v e = 
+                  let (mt, e') = expr scope v in 
+                  (function 
+                      SId s -> 
+                        let (n, e') = check_assign_var scope s e in 
+                        ((fst e', SId(s)), e')
+                    | SAccess (n, sn, mn) -> 
+                      let (t, e') = expr scope e in 
+                      if mt <> t then raise(Failure("illegal assignment " ^ string_of_typ mt ^ " = " ^ 
+                        string_of_typ t)); ((mt, SAccess(n, sn, mn)) , (t, e'))
+                    | _     -> raise(Failure("invalid assignment"))
+                  ) e' 
+                in  
+              (SAssign (List.map2 helper vl el), scope)
+
             | DeclAssign(vd, el) -> let (_, nscope) = check_stmt scope (VdeclStmt vd) in 
                 let vdl = List.map (fun n -> (n, (fst vd)) ) (snd vd) in
                 let assl = List.map2 (check_assign_var nscope) (snd vd) el in 
                 (SDeclAssign(vdl, assl), nscope)
             | Init(vl, el) -> 
                 let helper (ll, scope) v e = 
+                    let s = (function 
+                        Id s -> s 
+                      | _     -> raise(Failure("trying to initialize non-identifier")) 
+                    ) v in
+
                     let (t, e') = expr scope e in 
-                    let nscope = add_to_scope t v scope in 
-                    (SDeclAssign([(v, typ_to_vdecl_typ t)], [(v, (t, e'))]) :: ll, nscope)
+                    let nscope = add_to_scope t s scope in 
+                    (SDeclAssign([(s, typ_to_vdecl_typ t)], [(s, (t, e'))]) :: ll, nscope)
                 in 
               let (dal, nscope) = List.fold_left2 helper ([], scope) vl el 
               in (SInit(List.rev dal), nscope)
