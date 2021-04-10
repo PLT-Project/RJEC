@@ -1,0 +1,17 @@
+func main() {
+  i, j := 42, 30;
+  b := true;
+  printi(i);
+  printi(j);
+  printb(b);
+
+  if true {
+      j = 60;
+      printi(j);
+      i := 52;
+      printi(i);
+  }
+  
+  printi(i);
+  printi(j);
+}

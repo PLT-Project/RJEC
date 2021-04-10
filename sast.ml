@@ -24,6 +24,7 @@ type svdecl_typ = SInt | SBool | SChar
 type sassign_stmt = 
   | SAssign of (string * sexpr) list
   | SDeclAssign of ((string * vdecl_typ) list) * ((string * sexpr) list)
+  | SInit of sassign_stmt list
 
 type sstmt =
     SBlock of sstmt list

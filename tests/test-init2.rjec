@@ -1,0 +1,37 @@
+struct my_struct {
+    a int;
+    b char;
+    c bool;
+}
+
+func foo(x int, y char) struct my_struct {
+    i := struct my_struct {
+        a : x,
+        b : y
+    };
+    printi(i.a);
+    printc(i.b);
+    printb(i.c);
+
+    return i;
+}
+
+func main() {
+
+    t, k, l := foo(1, 'r'), foo(2, 'j'), 3;
+    printi(t.a);
+    printc(t.b);
+    printb(t.c);
+
+    printi(k.a);
+    printc(k.b);
+    printb(k.c);
+
+    printi(l);
+
+    a, b, c := t.a, t.b, t.c;
+    printi(a);
+    printc(b);
+    printb(c);
+
+}

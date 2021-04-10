@@ -21,6 +21,15 @@ let check (globals, (functions, structs)) =
     | Struct(s) -> Struct(s)
   in
 
+  let typ_to_vdecl_typ : typ -> vdecl_typ = function
+      Int -> Int
+    | Bool -> Bool
+    | Char -> Char
+    | Chan(t) -> Chan(t)
+    | Array(t) -> raise (Failure("array not implemented"))
+    | Struct(s) -> Struct(s)
+  in 
+
   let default_vals_in_sexpr : typ -> typ * sx = function
       Int -> (Int, SIntLit 0)
     | Bool -> (Bool, SBoolLit false)
@@ -284,6 +293,14 @@ let check (globals, (functions, structs)) =
                 let vdl = List.map (fun n -> (n, (fst vd)) ) (snd vd) in
                 let assl = List.map2 (check_assign_var nscope) (snd vd) el in 
                 (SDeclAssign(vdl, assl), nscope)
+            | Init(vl, el) -> 
+                let helper (ll, scope) v e = 
+                    let (t, e') = expr scope e in 
+                    let nscope = add_to_scope t v scope in 
+                    (SDeclAssign([(v, typ_to_vdecl_typ t)], [(v, (t, e'))]) :: ll, nscope)
+                in 
+              let (dal, nscope) = List.fold_left2 helper ([], scope) vl el 
+              in (SInit(List.rev dal), nscope)
             | _               -> raise (Failure ("not yet implemented"))
 
           in let (sassign, sscope) = check_assign_stmt s in 

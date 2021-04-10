@@ -286,6 +286,7 @@ let translate (globals, functions, structs) =
               ) builder sl), m)
           | SDeclAssign (vdl, assl) -> let (_, mm) = stmt m builder (SVdeclStmt vdl) in 
                 stmt mm builder (SAssignStmt(SAssign(assl)))
+          | SInit dal -> List.fold_left (fun (builder, m) da -> stmt m builder(SAssignStmt da)) (builder, m) dal 
           | _         -> raise (Failure "not yet implemented")
         in assign_stmt builder s 
 
