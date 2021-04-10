@@ -1,0 +1,14 @@
+func foo(x int, y int) bool {
+    return !(y % x == 0);
+
+}
+
+func main() {
+    i, j := 11, 2;
+
+    for ; foo(i, j); j = j + 2  {
+        printi(j);
+    }
+
+
+}

@@ -269,8 +269,28 @@ let check (globals, (functions, structs)) =
         let (sstmt1, _) = check_stmt scope b1 
         and (sstmt2, _) = check_stmt scope b2 in
         (SIf(check_bool_expr scope p, sstmt1, sstmt2), scope)
-      (*| For(e1, e2, e3, st) ->
-	  SFor(expr scope e1, check_bool_expr scope e2, expr scope e3, check_stmt st)*)
+      | For(e1, e2, e3, st) -> 
+
+        let (sstmt, nscope) = 
+        (function 
+            None      -> (SExpr(Int, SNoexpr), scope)
+          | Some(s)   -> check_stmt scope (AssignStmt s)
+        ) e1 in
+
+        let sexpr = check_bool_expr nscope e2 in
+
+        let (sstmt3, nscope) = (fun scope e -> match e with  
+            Some(Assign(_, _) as e') -> check_stmt scope (AssignStmt e')
+          | None          -> (SExpr(Int, SNoexpr), scope)
+          | _             -> raise(Failure("variable declaration misplaced in for loop"))
+        ) nscope e3 in 
+
+        let (sstmt4, nscope) = check_stmt nscope st in 
+        (SFor(sstmt, sexpr, sstmt3, sstmt4), nscope) 
+      | While(e, s) -> 
+        let (sstmt, nscope) = check_stmt scope s in 
+        (SWhile(check_bool_expr nscope e, sstmt), nscope)
+
       | Return el -> 
         if (List.length el <> List.length func.types) then 
           raise(Failure("The function '" ^ func.fname ^ "' has " ^ 

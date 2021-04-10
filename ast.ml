@@ -52,6 +52,7 @@ type stmt =
   | Return of expr list
   | If of expr * stmt * stmt
   | For of (assign_stmt option) * expr * (assign_stmt option) * stmt
+  | While of expr * stmt 
   | Select of (stmt * stmt list) list
   | Defer of expr
   | Yeet of expr

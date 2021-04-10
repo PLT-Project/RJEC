@@ -1,0 +1,7 @@
+func main() {
+    
+    for i := 5; 0 < i; i = i - 1  {
+        printi(i);
+    }
+
+}

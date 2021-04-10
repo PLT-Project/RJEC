@@ -1,0 +1,9 @@
+func main() {
+
+    i := 5;
+    for 0 < i {
+        printi(i);
+        i = i - 1;
+    }
+
+}
