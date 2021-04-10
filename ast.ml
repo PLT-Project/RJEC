@@ -38,6 +38,7 @@ type vdecl_typ = Int | Bool | Char
 
 type vdecl = vdecl_typ * string list
 
+
 type assign_stmt =
     DeclAssign of vdecl * expr list
   | Assign of string list * expr list

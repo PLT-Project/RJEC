@@ -153,7 +153,7 @@ let check (globals, (functions, structs)) =
       try
         StringMap.find v_name (List.hd scope)
       with Not_found -> match List.tl scope with
-          [] -> raise (Failure("undeclared reference " ^ v_name))
+          [] -> raise (Failure("semant: undeclared reference " ^ v_name))
         | tail -> type_of_identifier v_name tail
     in 
 
@@ -279,9 +279,15 @@ let check (globals, (functions, structs)) =
 	       follows any Return statement.  Nested blocks are flattened. *)
       | AssignStmt s -> 
           let check_assign_stmt = function
-              Assign(vl, el)  -> SAssign (List.map2 (check_assign_var scope) vl el)
+              Assign(vl, el)  -> (SAssign (List.map2 (check_assign_var scope) vl el), scope)
+            | DeclAssign(vd, el) -> let (_, nscope) = check_stmt scope (VdeclStmt vd) in 
+                let vdl = List.map (fun n -> (n, (fst vd)) ) (snd vd) in
+                let assl = List.map2 (check_assign_var nscope) (snd vd) el in 
+                (SDeclAssign(vdl, assl), nscope)
             | _               -> raise (Failure ("not yet implemented"))
-          in (SAssignStmt(check_assign_stmt s), scope)
+
+          in let (sassign, sscope) = check_assign_stmt s in 
+          (SAssignStmt(sassign), sscope)
       | VdeclStmt s -> 
           let (t, nl) = s in
           let (nscope, vdecls) = List.fold_left (fun (scope, vdecls) n -> 

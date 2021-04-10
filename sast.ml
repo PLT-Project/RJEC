@@ -23,6 +23,7 @@ type svdecl_typ = SInt | SBool | SChar
 
 type sassign_stmt = 
   | SAssign of (string * sexpr) list
+  | SDeclAssign of ((string * vdecl_typ) list) * ((string * sexpr) list)
 
 type sstmt =
     SBlock of sstmt list
@@ -31,10 +32,12 @@ type sstmt =
   | SReturn of sexpr list
   | SIf of sexpr * sstmt * sstmt
   | SFor of sexpr * sexpr * sexpr * sstmt
+(*For of (sassign_stmt option) * sexpr * (sassign_stmt option) * sstmt*)
   | SWhile of sexpr * sstmt
   | SVdeclStmt of (string * vdecl_typ) list
 
-type sfunc_decl = {
+
+  type sfunc_decl = {
     stypes : typ list;
     sfname : string;
     sformals : bind list;

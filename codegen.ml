@@ -130,7 +130,7 @@ let translate (globals, functions, structs) =
        Check local names first, then global names *)
     let rec lookup n ml = try StringMap.find n (List.hd ml)
                    with Not_found -> match List.tl ml with
-                      [] -> raise (Failure("undeclared reference " ^ n))
+                      [] -> raise (Failure("codegen lookup: undeclared reference " ^ n))
                     | tail -> lookup n tail
     in
 
@@ -284,6 +284,8 @@ let translate (globals, functions, structs) =
                   | _ -> ignore(L.build_store e' (lookup s m) builder); builder in
                 handle_assign(e)
               ) builder sl), m)
+          | SDeclAssign (vdl, assl) -> let (_, mm) = stmt m builder (SVdeclStmt vdl) in 
+                stmt mm builder (SAssignStmt(SAssign(assl)))
           | _         -> raise (Failure "not yet implemented")
         in assign_stmt builder s 
 
@@ -304,7 +306,7 @@ let translate (globals, functions, structs) =
         ((L.builder_at_end context merge_bb), m)
 
 
-    (*  | SWhile (predicate, body) ->
+     (* | SWhile (predicate, body) ->
 	  let pred_bb = L.append_block context "while" the_function in
 	  ignore(L.build_br pred_bb builder);
 
