@@ -8,11 +8,10 @@ test : all testall.sh
 # to test linking external code
 
 .PHONY : all
-all : rjec.native printbool.o libmill
+all : rjec.native printbool.o libmill/libmill.a
 
-# "make libmill" builds the libmill library used for concurrency in RJEC
-.PHONY : libmill
-libmill :
+# builds the libmill library used for concurrency in RJEC
+libmill/libmill.a :
 	./buildlibmill.sh
 
 # "make rjec.native" compiles the compiler

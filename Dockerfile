@@ -1,13 +1,15 @@
 # Based on 20.04 LTS
 FROM ubuntu:focal
 
-RUN apt-get -yq update && \
-    apt-get -y upgrade && \
+ENV TZ=America/New_York
+RUN apt-get -yq update
+RUN DEBIAN_FRONTEND="noninteractive" apt-get -y install tzdata
+RUN apt-get -y upgrade && \
     apt-get -yq --no-install-suggests --no-install-recommends install \
     ocaml \
     menhir \
-    llvm-10.0 \
-    llvm-10.0-dev \
+    llvm-10 \
+    llvm-10-dev \
     m4 \
     git \
     aspcud \
@@ -17,16 +19,19 @@ RUN apt-get -yq update && \
     cmake \
     opam
 
-RUN ln -s /usr/bin/lli-10.0 /usr/bin/lli
-RUN ln -s /usr/bin/llc-10.0 /usr/bin/llc
+RUN ln -s /usr/bin/lli-10 /usr/bin/lli
+RUN ln -s /usr/bin/llc-10 /usr/bin/llc
 
-RUN opam init
-RUN opam install \
+RUN opam init --disable-sandboxing
+RUN opam install -y \
     llvm.10.0.0 \
-    ocamlfind
+    ocamlfind \
+    ocamlbuild
 
 WORKDIR /root
 
 ENTRYPOINT ["opam", "config", "exec", "--"]
 
 CMD ["bash"]
+
+ENV LD_LIBRARY_PATH=/home/rjec/libmill
