@@ -37,6 +37,8 @@ type sstmt =
   | SWhile of sexpr * sstmt
   | SVdeclStmt of (string * vdecl_typ) list
   | SDefer of sexpr
+  | SBreak
+  | SContinue
 
 
   type sfunc_decl = {

@@ -379,6 +379,8 @@ let check (globals, (functions, structs)) =
             | []              -> ([], scope)
           in let (bret, _) = check_stmt_list bscope sl
           in (SBlock(bret), scope)
+      | Break -> (SBreak, scope)
+      | Continue -> (SContinue, scope)
       | _ -> raise (Failure ("not yet implemented"))
 
     in (* body of check_function *)

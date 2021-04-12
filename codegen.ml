@@ -329,15 +329,25 @@ let translate (globals, functions, structs) =
      | SWhile (predicate, body) ->
         let pred_bb = L.append_block context "while" the_function in
         ignore(L.build_br pred_bb builder);
-
         let body_bb = L.append_block context "while_body" the_function in
-        let (builder, mm, dl) = stmt m dl (L.builder_at_end context body_bb) body in
+        let merge_bb = L.append_block context "merge" the_function in
+
+        let rec for_stmt_list (builder, m, dl) sl = 
+          let helper (builder, m, dl) s = match s with
+              SBreak -> add_terminal builder (L.build_br merge_bb); (builder, m, dl)
+            | SContinue -> add_terminal builder (L.build_br pred_bb); (builder, m, dl)
+            | SBlock(sl) -> for_stmt_list (builder, m, dl) sl
+            | _ as s -> stmt m dl builder s
+          in
+          List.fold_left (fun (builder, m, dl) s -> helper (builder, m, dl) s) (builder, m, dl) sl
+        in
+        let SBlock(sl) = body in 
+        let (builder, mm, dl) = for_stmt_list (L.builder_at_end context body_bb, m, dl) sl in
         add_terminal builder (L.build_br pred_bb);
 
         let pred_builder = L.builder_at_end context pred_bb in
         let bool_val = expr mm pred_builder predicate in
 
-        let merge_bb = L.append_block context "merge" the_function in
         ignore(L.build_cond_br bool_val body_bb merge_bb pred_builder);
         (L.builder_at_end context merge_bb, mm, dl)
 
@@ -361,6 +371,8 @@ let translate (globals, functions, structs) =
                               | _ -> raise(Failure("Multiple return types not implemented yet"))) in
           (fdef, Array.of_list llargs, result) in
       (builder, m, (construct_call f)::dl)
+    | SBreak -> (builder, m, dl) (* TODO: forbid breaks outside of for loop *)
+    | SContinue -> (builder, m, dl) (* TODO: forbid continues outside of for loop *)
     in
 
     (* Build the code for each statement in the function *)
