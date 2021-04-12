@@ -351,6 +351,11 @@ let check (globals, (functions, structs)) =
             (add_to_scope (vdecl_typ_to_typ t) n scope, (n, t)::vdecls)
           ) (scope, []) nl
           in (SVdeclStmt(vdecls), nscope)
+      | Defer e -> 
+        (function 
+          Call(_, _) -> (SDefer(expr scope e), scope)
+        | _ -> raise(Failure("defering a non-function call"))
+        ) e
       | Block sl -> 
           let bscope = (create_scope []) :: scope in
           let rec check_stmt_list scope = function

@@ -36,6 +36,7 @@ type sstmt =
 (*For of (sassign_stmt option) * sexpr * (sassign_stmt option) * sstmt*)
   | SWhile of sexpr * sstmt
   | SVdeclStmt of (string * vdecl_typ) list
+  | SDefer of sexpr
 
 
   type sfunc_decl = {
