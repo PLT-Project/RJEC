@@ -69,3 +69,11 @@ m4/ltsugar.m4
 m4/ltversion.m4
 m4/lt~obsolete.m4
 dns/.dirstamp
+CMakeFiles/
+generated/
+cmake_install.cmake
+CMakeCache.txt
+CTestTestfile.cmake
+DartConfiguration.tcl
+libmill.so
+*.a

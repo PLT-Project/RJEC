@@ -8,8 +8,12 @@ test : all testall.sh
 # to test linking external code
 
 .PHONY : all
-all : rjec.native printbool.o
+all : rjec.native printbool.o libmill
 
+# "make libmill" builds the libmill library used for concurrency in RJEC
+.PHONY : libmill
+libmill :
+	./buildlibmill.sh
 
 # "make rjec.native" compiles the compiler
 #
@@ -20,11 +24,12 @@ all : rjec.native printbool.o
 
 rjec.native :
 	opam config exec -- \
-	ocamlbuild -use-ocamlfind rjec.native
+	ocamlbuild -X libmill/ -use-ocamlfind rjec.native
 
 # "make clean" removes all generated files
 
 .PHONY : clean
 clean :
 	ocamlbuild -clean
-	rm -rf testall.log *.o ocamlllvm *.diff *.ll *.s *.exe
+	rm -rf testall.log ocamlllvm *.diff
+	rm *.o *.ll *.s *.exe
