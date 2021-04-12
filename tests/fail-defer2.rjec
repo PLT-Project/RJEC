@@ -1,0 +1,7 @@
+func main() {
+    i := 1;
+    for i < 3 {
+        defer printi(i);
+        i = i + 1;
+    }
+}

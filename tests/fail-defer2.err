@@ -1,0 +1,1 @@
+Fatal error: exception Failure("defer statement inside of while block")

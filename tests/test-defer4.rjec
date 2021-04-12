@@ -1,0 +1,9 @@
+func main() {
+    if true {
+        defer printi(1);
+        if true {
+            defer printi(2);
+        }
+        defer printi(3);
+    }
+}

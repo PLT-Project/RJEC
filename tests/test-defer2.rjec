@@ -1,0 +1,12 @@
+func foo (x int){
+    printi(x);
+}
+
+func main() {
+    defer printi(1);
+    defer printi(2);
+    defer foo(3);
+
+    foo(4);
+    printi(5);
+}

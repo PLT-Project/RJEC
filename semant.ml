@@ -270,6 +270,11 @@ let check (globals, (functions, structs)) =
         and (sstmt2, _) = check_stmt scope b2 in
         (SIf(check_bool_expr scope p, sstmt1, sstmt2), scope)
       | For(e1, e2, e3, st) -> 
+        let rec forbid_defer = function
+            Defer _ -> raise(Failure("defer statement inside of while block"))
+          | Block sl -> List.iter forbid_defer sl
+          | _ -> () in
+        forbid_defer st;
 
         let (sstmt, nscope) = 
         (function 
@@ -288,6 +293,11 @@ let check (globals, (functions, structs)) =
         let (sstmt4, nscope) = check_stmt nscope st in 
         (SFor(sstmt, sexpr, sstmt3, sstmt4), nscope) 
       | While(e, s) -> 
+        let rec forbid_defer = function
+            Defer _ -> raise(Failure("defer statement inside of while block"))
+          | Block sl -> List.iter forbid_defer sl
+          | _ -> () in
+        forbid_defer s;
         let (sstmt, nscope) = check_stmt scope s in 
         (SWhile(check_bool_expr nscope e, sstmt), nscope)
 
@@ -351,6 +361,11 @@ let check (globals, (functions, structs)) =
             (add_to_scope (vdecl_typ_to_typ t) n scope, (n, t)::vdecls)
           ) (scope, []) nl
           in (SVdeclStmt(vdecls), nscope)
+      | Defer e -> 
+        (function 
+          Call(_, _) -> (SDefer(expr scope e), scope)
+        | _ -> raise(Failure("defering a non-function call"))
+        ) e
       | Block sl -> 
           let bscope = (create_scope []) :: scope in
           let rec check_stmt_list scope = function
