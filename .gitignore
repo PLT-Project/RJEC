@@ -1,2 +1,6 @@
 _build/
 RJEC.code-workspace
+*.o
+*.a
+testall.log
+rjec.native
