@@ -41,12 +41,12 @@ type sstmt =
   | SContinue
 
 
-  type sfunc_decl = {
-    stypes : typ list;
-    sfname : string;
-    sformals : bind list;
-    sbody : sstmt list;
-  }
+type sfunc_decl = {
+  stypes : typ list;
+  sfname : string;
+  sformals : bind list;
+  sbody : sstmt list;
+}
 
 type sprogram = bind list * sfunc_decl list
 
