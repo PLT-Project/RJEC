@@ -103,8 +103,7 @@ let translate (globals, functions, structs) =
           [] -> i32_t
         | t :: [] -> ltype_of_typ t 
         | _ -> raise(Failure("Multiple return types not implemented yet")) in
-      let func_t = StringMap.find name function_arg_structs in
-      let ftype = L.function_type rt_type [| L.pointer_type func_t |] in
+      let ftype = L.function_type rt_type [| void_ptr_t |] in
       StringMap.add name (L.define_function name ftype the_module, fdecl) m in
     List.fold_left function_decl StringMap.empty functions in
   
@@ -123,8 +122,10 @@ let translate (globals, functions, structs) =
        value, if appropriate, and remember their values in the "locals" map *)
 
     let formal_vals = 
-      let p = List.hd (Array.to_list (L.params the_function)) in
-      let args = L.build_load p (fdecl.sfname ^ "_args") builder in
+      let args_type = StringMap.find fdecl.sfname function_arg_structs in
+      let void_ptr = List.hd (Array.to_list (L.params the_function)) in
+      let ptr = L.build_bitcast void_ptr (L.pointer_type args_type) (fdecl.sfname ^ "_args_ptr") builder in
+      let args = L.build_load ptr (fdecl.sfname ^ "_args") builder in
       let idxs = List.rev (generate_seq ((List.length fdecl.sformals) - 1)) in
       let args_list = List.fold_left (fun l idx -> 
         let arg = L.build_extractvalue args idx (
@@ -259,7 +260,9 @@ let translate (globals, functions, structs) =
                             [] -> ""
                           | _ :: [] -> f ^ "_result"
                           | _ -> raise(Failure("Multiple return types not implemented yet"))) in
-      (fdef, local, result)
+
+      let void_ptr_arg = L.build_bitcast local void_ptr_t (f ^ "_arg_pointer") builder in
+      (fdef, void_ptr_arg, result)
     in
     
     (* LLVM insists each basic block end with exactly one "terminator" 
@@ -322,8 +325,8 @@ let translate (globals, functions, structs) =
                      (builder, m, [])
       | SYeet(SCall(f, args)) -> 
         let (fdef, local, result) = construct_func_call f args m builder in
-        (* let local_void_ptr = L.const_bitcast local void_ptr_t in *)
-        L.build_call yeet_func [| fdef ; local |] "yeet" builder ; (builder, m, dl)
+        (* let local_void_ptr = L.build_bitcast local void_ptr_t (f ^ "_arg_ptr") builder in *)
+        L.build_call yeet_func [| fdef ; local |] "" builder ; (builder, m, dl)
       | SAssignStmt s -> let assign_stmt builder = function
             SAssign sl -> 
               List.map (fun (ee, e) -> 

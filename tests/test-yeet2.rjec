@@ -1,0 +1,23 @@
+struct lol {
+    x int;
+    y int;
+    z bool; 
+}
+
+func foo (x struct lol) {
+    y := struct lol {
+        x : x.x,
+        y : x.y + 1
+    };
+
+    printi(y.x);
+    printi(y.y);
+    printb(y.z);
+}
+
+func main() {
+    yeet foo(struct lol {
+        x : 1,
+        y : 2
+    });
+}
