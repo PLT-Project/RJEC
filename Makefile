@@ -1,3 +1,6 @@
+LDFLAGS = -L libmill/
+LDLIBS = -lmill
+
 # "make test" Compiles everything and runs the regression tests
 
 .PHONY : test
@@ -8,7 +11,7 @@ test : all testall.sh
 # to test linking external code
 
 .PHONY : all
-all : rjec.native printbool.o libmill/libmill.a
+all : rjec.native printbool.o libmill/libmill.a concurrency.o
 
 # builds the libmill library used for concurrency in RJEC
 libmill/libmill.a :

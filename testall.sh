@@ -30,6 +30,15 @@ globalerror=0
 
 keep=0
 
+if [ -z "$LD_LIBRARY_PATH" ]
+then
+    LD_LIBRARY_PATH=$(pwd)/libmill
+    export LD_LIBRARY_PATH
+    echo "export LD_LIBRARY_PATH=$(pwd)/libmill"
+else
+    echo "check that LD_LIBRARY_PATH is exported!"
+fi
+
 Usage() {
     echo "Usage: testall.sh [options] [.rjec files]"
     echo "-k    Keep intermediate files"
