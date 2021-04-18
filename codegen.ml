@@ -32,6 +32,7 @@ let translate (globals, functions, structs) =
   and i1_t       = L.i1_type     context
   and void_t     = L.void_type   context 
   and void_ptr_t = L.pointer_type (L.i8_type context) in
+  let func_t     = L.pointer_type (L.function_type i32_t [| void_ptr_t |]) in
 
   let rec generate_seq n = if n >= 0 then (n :: (generate_seq (n-1))) else [] in
   
@@ -77,6 +78,11 @@ let translate (globals, functions, structs) =
       L.function_type i32_t [| i1_t |] in
   let printbool_func : L.llvalue =
       L.declare_function "printbool" printbool_t the_module in
+
+  let yeet_t : L.lltype =
+      L.function_type void_t [| func_t ; void_ptr_t |] in
+  let yeet_func : L.llvalue =
+      L.declare_function "yeet" yeet_t the_module in
 
   let function_arg_structs = 
     let add_function_arg_struct m fdecl =
@@ -226,21 +232,7 @@ let translate (globals, functions, structs) =
         "printbool" builder 
 
       | SCall (f, args) ->
-        let (fdef, fdecl) = StringMap.find f function_decls in
-        let args_t = StringMap.find f function_arg_structs in
-        let llargs = List.rev (List.map (expr m builder) (List.rev args)) in
-
-        let local = L.build_malloc args_t (f ^ "_args") builder in
-        let idxs = List.rev (generate_seq ((List.length fdecl.sformals) - 1)) in
-        let args = List.fold_left2 (fun agg i llarg -> 
-          (L.build_insertvalue agg llarg i ("arg_" ^ string_of_int i) builder))
-        (L.const_null args_t) idxs llargs in
-        L.build_store args local builder;
-        (* TODO: fix multiple return types later *)
-        let result = (match fdecl.stypes with 
-                              [] -> ""
-                            | _ :: [] -> f ^ "_result"
-                            | _ -> raise(Failure("Multiple return types not implemented yet"))) in
+        let (fdef, local, result) = construct_func_call f args m builder in
         L.build_call fdef [| local |] result builder
       | SAccess(n, sn, mn) -> 
         let struct_val = expr m builder (Struct(sn), SId(n)) in
@@ -250,6 +242,24 @@ let translate (globals, functions, structs) =
         let name_idx_pairs = List.mapi (fun i n -> (n, i)) sorted_names in
         let idx = snd (List.hd (List.filter (fun (n, _) -> n = mn) name_idx_pairs)) in
         L.build_extractvalue struct_val idx mn builder
+    and 
+    construct_func_call f args m builder = 
+      let (fdef, fdecl) = StringMap.find f function_decls in
+      let args_t = StringMap.find f function_arg_structs in
+      let llargs = List.rev (List.map (expr m builder) (List.rev args)) in
+
+      let local = L.build_malloc args_t (f ^ "_args") builder in
+      let idxs = List.rev (generate_seq ((List.length fdecl.sformals) - 1)) in
+      let args = List.fold_left2 (fun agg i llarg -> 
+        (L.build_insertvalue agg llarg i ("arg_" ^ string_of_int i) builder))
+      (L.const_null args_t) idxs llargs in
+      L.build_store args local builder;
+      (* TODO: fix multiple return types later *)
+      let result = (match fdecl.stypes with 
+                            [] -> ""
+                          | _ :: [] -> f ^ "_result"
+                          | _ -> raise(Failure("Multiple return types not implemented yet"))) in
+      (fdef, local, result)
     in
     
     (* LLVM insists each basic block end with exactly one "terminator" 
@@ -310,6 +320,10 @@ let translate (globals, functions, structs) =
                         | _ :: [] -> L.build_ret (expr m builder (List.hd e)) builder
                         | _ -> raise(Failure("Multiple return types not implemented yet")));
                      (builder, m, [])
+      | SYeet(SCall(f, args)) -> 
+        let (fdef, local, result) = construct_func_call f args m builder in
+        (* let local_void_ptr = L.const_bitcast local void_ptr_t in *)
+        L.build_call yeet_func [| fdef ; local |] "yeet" builder ; (builder, m, dl)
       | SAssignStmt s -> let assign_stmt builder = function
             SAssign sl -> 
               List.map (fun (ee, e) -> 
@@ -385,22 +399,7 @@ let translate (globals, functions, structs) =
         | "printc" -> (printf_func, [| char_format_str ; (expr m builder (List.hd args)) |], "printf")
         | "printi" -> (printf_func, [| int_format_str ; (expr m builder (List.hd args)) |], "printf")
         | _ -> 
-
-          let (fdef, fdecl) = StringMap.find f function_decls in
-          let args_t = StringMap.find f function_arg_structs in
-          let llargs = List.rev (List.map (expr m builder) (List.rev args)) in
-
-          let local = L.build_malloc args_t (f ^ "_args") builder in
-          let idxs = List.rev (generate_seq ((List.length fdecl.sformals) - 1)) in
-          let args = List.fold_left2 (fun agg i llarg -> 
-            (L.build_insertvalue agg llarg i ("arg_" ^ string_of_int i) builder))
-          (L.const_null args_t) idxs llargs in
-          L.build_store args local builder;
-          (* TODO: fix multiple return types later *)
-          let result = (match fdecl.stypes with 
-                                [] -> ""
-                              | _ :: [] -> f ^ "_result"
-                              | _ -> raise(Failure("Multiple return types not implemented yet"))) in
+          let (fdef, local, result) = construct_func_call f args m builder in
           (fdef, [| local |], result) in
 
       (builder, m, (construct_call f)::dl)

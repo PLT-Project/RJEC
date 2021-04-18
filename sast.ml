@@ -37,6 +37,7 @@ type sstmt =
   | SWhile of sexpr * sstmt
   | SVdeclStmt of (string * vdecl_typ) list
   | SDefer of sexpr
+  | SYeet of sx
 
 
   type sfunc_decl = {
