@@ -318,7 +318,11 @@ let check (globals, (functions, structs)) =
 	       follows any Return statement.  Nested blocks are flattened. *)
       | Yeet e -> 
           let scall = (function
-              Call(f, args) as call -> snd (expr scope call)
+              Call(f, args) as call -> 
+                let fdecl = find_func f in
+                if (fdecl.types <> []) && (fdecl.types <> [Int]) 
+                  then raise(Failure("a yeet function call can only return int or nothing"));
+                snd (expr scope call)
             | _ -> raise(Failure("can't yeet a non-function call"))
           ) e in (SYeet(scall), scope)
       | AssignStmt s -> 

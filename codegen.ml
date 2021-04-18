@@ -247,7 +247,12 @@ let translate (globals, functions, structs) =
     construct_func_call f args m builder = 
       let (fdef, fdecl) = StringMap.find f function_decls in
       let args_t = StringMap.find f function_arg_structs in
-      let llargs = List.rev (List.map (expr m builder) (List.rev args)) in
+      let llargs = List.rev (List.map (
+        fun arg -> match arg with
+            (_, SStructLit(s, _)) -> let p = expr m builder arg in 
+                                     L.build_load p (s ^ "_lit") builder
+          | _ -> expr m builder arg
+      ) (List.rev args)) in
 
       let local = L.build_malloc args_t (f ^ "_args") builder in
       let idxs = List.rev (generate_seq ((List.length fdecl.sformals) - 1)) in
