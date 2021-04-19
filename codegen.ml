@@ -31,7 +31,8 @@ let translate (globals, functions, structs) =
   and i8_t       = L.i8_type     context
   and i1_t       = L.i1_type     context
   and void_t     = L.void_type   context 
-  and void_ptr_t = L.pointer_type (L.i8_type context) in
+  and void_ptr_t = L.pointer_type (L.i8_type context)
+  and chan_t     = L.pointer_type (L.i8_type context) in
   let func_t     = L.pointer_type (L.function_type i32_t [| void_ptr_t |]) in
 
   let rec generate_seq n = if n >= 0 then (n :: (generate_seq (n-1))) else [] in
@@ -58,6 +59,7 @@ let translate (globals, functions, structs) =
     | A.Bool  -> i1_t
     | A.Char ->  i8_t
     | A.Struct(n) -> snd (StringMap.find n struct_decls)
+    | A.Chan(_) -> chan_t
   in
 
   (* Create a map of global variables after creating each *)
@@ -83,6 +85,11 @@ let translate (globals, functions, structs) =
       L.function_type void_t [| func_t ; void_ptr_t |] in
   let yeet_func : L.llvalue =
       L.declare_function "yeet" yeet_t the_module in
+
+  let makechan_t : L.lltype = 
+      L.function_type void_ptr_t [| i8_t ; i32_t |] in
+  let makechan_func : L.llvalue =
+    L.declare_function "makechan" makechan_t the_module in
 
   let function_arg_structs = 
     let add_function_arg_struct m fdecl =
@@ -235,6 +242,15 @@ let translate (globals, functions, structs) =
       | SCall (f, args) ->
         let (fdef, local, result) = construct_func_call f args m builder in
         L.build_call fdef [| local |] result builder
+      | SMake (t, buf) -> 
+        let typ_to_typ_char (t : A.typ) = match t with
+            A.Int -> L.const_int i8_t (Char.code 'i')
+          | A.Bool -> L.const_int i8_t (Char.code 'b')
+          | A.Char -> L.const_int i8_t (Char.code 'c')
+          | _ -> raise(Failure("non-basic type for chan; should've checked in parser")) in
+        let t_char = typ_to_typ_char t in
+        let ll_buf = expr m builder buf in
+        L.build_call makechan_func [| t_char ; ll_buf |] "makechan" builder
       | SAccess(n, sn, mn) -> 
         let struct_val = expr m builder (Struct(sn), SId(n)) in
         let (member_names, struct_t) = StringMap.find sn struct_decls in
@@ -298,6 +314,10 @@ let translate (globals, functions, structs) =
                 A.Int | A.Bool | A.Char ->
                   let local = L.build_alloca (ltype_of_typ (vdecl_typ_to_typ t)) n builder in 
                   let default_value = L.const_int (ltype_of_typ (vdecl_typ_to_typ t)) 0 in
+                  L.build_store default_value local builder; local
+              | A.Chan(_) -> 
+                  let local = L.build_alloca (ltype_of_typ (vdecl_typ_to_typ t)) n builder in 
+                  let default_value = L.const_pointer_null void_ptr_t in
                   L.build_store default_value local builder; local
               | A.Struct(n)-> 
                   let local = L.build_malloc (ltype_of_typ (vdecl_typ_to_typ t)) n builder in

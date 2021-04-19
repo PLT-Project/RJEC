@@ -1,0 +1,5 @@
+func main() {
+    var foo chan int;
+    foo = make(chan int);
+    foo2 := make(chan bool, 10);
+}

@@ -215,6 +215,14 @@ let check (globals, (functions, structs)) =
                        string_of_typ t1 ^ " " ^ string_of_op op ^ " " ^
                        string_of_typ t2 ^ " in " ^ string_of_expr e))
           in (ty, SBinop((t1, e1'), op, (t2, e2')))
+      | Make(t, buf_raw) ->
+        let check_buf (buf_raw : expr option) : sexpr = match buf_raw with
+            None -> (Int, SIntLit 0)
+          | Some(e) -> let (t', e') = expr scope e in
+                         if t' <> Int then raise(Failure("non-integer used for channel buffer size"))
+                         else (t', e') in
+        let buf = check_buf buf_raw in
+        (Chan(t), SMake(t, buf))
       | Access(n, mn) -> 
         let check_struct (t : typ) = match t with
             Struct(n) -> n
