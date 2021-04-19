@@ -5,6 +5,7 @@
 #include "libmill/libmill.h"
 #include <stdbool.h>
 
+
 void yeet(int (*start_routine)(void *), void *args)
 {
     go(start_routine(args));
@@ -79,18 +80,24 @@ void closechan(void *ch_void_ptr, char typ)
 
 // int subroutine(void *args){
 //     chan ch = args;
-//     for (int i = 0 ; i < 5; i ++){
-//         int a = chr(ch, int);
-//         printf("%d\n", a);
-//     }
-// }
-// int main () {
-//     chan ch = chmake(int, 10);
-//     yeet(&subroutine, ch);
-
 //     chs(ch, int, 1);
 //     chs(ch, int, 2);
 //     chs(ch, int, 3);
 
 //     chdone(ch, int, 0);
+    
+//     // for (int i = 0 ; i < 5; i ++){
+//     //     int a = chr(ch, int);
+//     //     printf("%d\n", a);
+//     // }
+// }
+// int main () {
+//     chan ch = chmake(int, 10);
+    
+//     yeet(&subroutine, ch);
+//     printf("%d\n", chr(ch, int));
+//     printf("%d\n", chr(ch, int));
+//     printf("%d\n", chr(ch, int));
+//     printf("%d\n", chr(ch, int));
+//     printf("%d\n", chr(ch, int));
 // }
