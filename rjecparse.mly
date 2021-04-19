@@ -130,7 +130,7 @@ stmt:
                                     { While($2, Block(List.rev $4)) }
   | FOR LBRACE stmt_list RBRACE    
                          { While(BoolLit(true), Block(List.rev $3)) }
-  /*| SELECT LBRACE case_list RBRACE          { Select(List.rev $3)   }*/
+  | SELECT LBRACE case_list RBRACE          { Select(List.rev $3)   }
   | DEFER expr SEMI                         { Defer($2)             }
   | YEET expr SEMI                          { Yeet($2)              }
   | BREAK SEMI                              { Break                 }
@@ -142,14 +142,14 @@ else_opt:
                                    { If($3, Block(List.rev $5), $7) }
   | ELSE LBRACE stmt_list RBRACE               { Block(List.rev $3) }
 
-/*case_list:
-    CASE case_stmt COLON stmt_list           { [($2, $4)] }
-  | case_list CASE case_stmt COLON stmt_list { ($3, $5) :: $1 }
+case_list:
+    CASE case_stmt COLON stmt_list           { [($2, Block(List.rev $4))] }
+  | case_list CASE case_stmt COLON stmt_list { ($3, Block(List.rev $5)) :: $1 }
 
 case_stmt:
-    ID ARROW expr    { Send($1, $3)       }
-  | ARROW ID         { Recv($2)           }
-  | assign_stmt      { AssignStmt $1      }*/
+    ID ARROW expr    { Expr (Send ($1, $3))     }
+  | ARROW ID         { Expr (Recv $2)           }
+  | assign_stmt      { AssignStmt $1            }
 
 assign_stmt:
   | vdecl ASSIGN args_list            { DeclAssign($1, List.rev $3)    }
