@@ -316,6 +316,15 @@ let check (globals, (functions, structs)) =
         (SReturn(List.map2 check_return_typ el func.types), scope)
 	    (* A block is correct if each statement is correct and nothing
 	       follows any Return statement.  Nested blocks are flattened. *)
+      | Yeet e -> 
+          let scall = (function
+              Call(f, args) as call -> 
+                let fdecl = find_func f in
+                if (fdecl.types <> []) && (fdecl.types <> [Int]) 
+                  then raise(Failure("a yeet function call can only return int or nothing"));
+                snd (expr scope call)
+            | _ -> raise(Failure("can't yeet a non-function call"))
+          ) e in (SYeet(scall), scope)
       | AssignStmt s -> 
           let check_assign_stmt = function
               Assign(vl, el)  -> 

@@ -1,0 +1,10 @@
+func foo (x int, y int) int {
+    printi(x);
+    printi(y);
+    printi(x + y);
+    return x + y;
+}
+
+func main() {
+    yeet foo(3, 4);
+}
