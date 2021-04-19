@@ -1,0 +1,15 @@
+func foo(x chan char){
+    for {
+        a := <- x;
+        printc(a);
+    }
+}
+
+func main () {
+    x := make(chan char);
+    yeet foo(x);
+    x <- 'r';
+    x <- 'j';
+    x <- 'e';
+    x <- 'c';
+}

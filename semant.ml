@@ -166,6 +166,11 @@ let check (globals, (functions, structs)) =
         | tail -> type_of_identifier v_name tail
     in 
 
+    let check_chan n scope = match (type_of_identifier n scope) with
+        Chan(t) -> t
+      | _ -> raise(Failure("Trying to send through a non-channel variable"))
+    in
+
     (* Return a semantically-checked expression, i.e., with a type *)
     let rec expr (scope : typ StringMap.t list) (e : expr) : sexpr = match e with
         IntLit  l -> (Int, SIntLit l)
@@ -215,6 +220,25 @@ let check (globals, (functions, structs)) =
                        string_of_typ t1 ^ " " ^ string_of_op op ^ " " ^
                        string_of_typ t2 ^ " in " ^ string_of_expr e))
           in (ty, SBinop((t1, e1'), op, (t2, e2')))
+      | Make(t, buf_raw) ->
+        let check_buf (buf_raw : expr option) : sexpr = match buf_raw with
+            None -> (Int, SIntLit 0)
+          | Some(e) -> let (t', e') = expr scope e in
+                         if t' <> Int then raise(Failure("non-integer used for channel buffer size"))
+                         else (t', e') in
+        let buf = check_buf buf_raw in
+        (Chan(t), SMake(t, buf))
+      | Send(n, e) -> 
+        let chan_type = check_chan n scope in
+        let (t', e') = expr scope e in
+        if t' <> chan_type then raise(Failure("Channel type mismatch with type of element to send"));
+        (t', SSend(n, (t', e')))
+      | Recv n -> 
+        let chan_type = check_chan n scope in
+        (chan_type, SRecv(n, chan_type))
+      | Close n -> 
+        let chan_type = check_chan n scope in
+        (chan_type, SClose(n, chan_type))
       | Access(n, mn) -> 
         let check_struct (t : typ) = match t with
             Struct(n) -> n

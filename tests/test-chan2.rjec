@@ -1,0 +1,9 @@
+func main () {
+    ch := make(chan int, 3);
+	ch <- 10;
+	ch <- 2;
+	ch <- 8;
+	printi(<-ch);
+	printi(<-ch);
+	printi(<-ch);
+}
