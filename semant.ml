@@ -223,6 +223,20 @@ let check (globals, (functions, structs)) =
                          else (t', e') in
         let buf = check_buf buf_raw in
         (Chan(t), SMake(t, buf))
+      | Send(n, e) -> 
+        let check_chan n = match (type_of_identifier n scope) with
+            Chan(t) -> t
+          | _ -> raise(Failure("Trying to send through a non-channel variable")) in
+        let chan_type = check_chan n in
+        let (t', e') = expr scope e in
+        if t' <> chan_type then raise(Failure("Channel type mismatch with type of element to send"));
+        (t', SSend(n, (t', e')))
+      | Recv(n) -> 
+        let check_chan n = match (type_of_identifier n scope) with
+            Chan(t) -> t
+          | _ -> raise(Failure("Trying to send through a non-channel variable")) in
+        let chan_type = check_chan n in
+        (chan_type, SRecv(n, chan_type))
       | Access(n, mn) -> 
         let check_struct (t : typ) = match t with
             Struct(n) -> n

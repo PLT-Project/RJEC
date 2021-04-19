@@ -1,0 +1,18 @@
+func foo1 (r chan int, s chan int) {
+    for {
+        a := (<- r);
+        prints("receiver:");
+        printi(a + 1);
+        s <- (a * 2);
+    }
+}
+
+func main () {
+    s, r := make(chan int), make(chan int);
+    yeet foo1(s, r);
+    for a := 1; a < 1000 ; a = (<- r) {
+        s <- a;
+        prints("sender:");
+        printi(a);
+    }
+}

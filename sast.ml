@@ -15,6 +15,8 @@ and sx =
   | SCall of string * sexpr list
   | SAccess of string * string * string 
   | SMake of typ * sexpr
+  | SSend of string * sexpr
+  | SRecv of string * typ
   | SNoexpr
 
 type svdecl_typ = SInt | SBool | SChar

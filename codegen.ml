@@ -62,6 +62,13 @@ let translate (globals, functions, structs) =
     | A.Chan(_) -> chan_t
   in
 
+  let typ_to_typ_char (t : A.typ) = match t with
+      A.Int -> L.const_int i8_t (Char.code 'i')
+    | A.Bool -> L.const_int i8_t (Char.code 'b')
+    | A.Char -> L.const_int i8_t (Char.code 'c')
+    | _ -> raise(Failure("non-basic type for chan; should've checked in parser"))
+  in
+
   (* Create a map of global variables after creating each *)
   let global_vars : L.llvalue StringMap.t =
     let global_var m (t, n) = 
@@ -90,6 +97,24 @@ let translate (globals, functions, structs) =
       L.function_type void_ptr_t [| i8_t ; i32_t |] in
   let makechan_func : L.llvalue =
     L.declare_function "makechan" makechan_t the_module in
+
+  let send_t : L.lltype = 
+    L.function_type void_t [| void_ptr_t ; i8_t ; i32_t |] in
+  let send_func : L.llvalue =
+    L.declare_function "send" send_t the_module in
+
+  let recv_int_t : L.lltype = 
+    L.function_type i32_t [| void_ptr_t |] in
+  let recv_bool_t : L.lltype = 
+    L.function_type i1_t [| void_ptr_t |] in
+  let recv_char_t : L.lltype = 
+    L.function_type i8_t [| void_ptr_t |] in
+  let recv_int_func : L.llvalue =
+    L.declare_function "recv_int" recv_int_t the_module in
+  let recv_bool_func : L.llvalue =
+    L.declare_function "recv_bool" recv_bool_t the_module in
+  let recv_char_func : L.llvalue =
+    L.declare_function "recv_char" recv_char_t the_module in
 
   let function_arg_structs = 
     let add_function_arg_struct m fdecl =
@@ -217,7 +242,7 @@ let translate (globals, functions, structs) =
         | A.Less    -> L.build_icmp L.Icmp.Slt
         | A.Leq     -> L.build_icmp L.Icmp.Sle
         ) e1' e2' "tmp" builder
-      | SUnop(op, ((t, _) as e)) ->
+      | SUnop (op, ((t, _) as e)) ->
         let e' = expr m builder e in
         (match op with
           A.Neg                  -> L.build_neg
@@ -243,15 +268,25 @@ let translate (globals, functions, structs) =
         let (fdef, local, result) = construct_func_call f args m builder in
         L.build_call fdef [| local |] result builder
       | SMake (t, buf) -> 
-        let typ_to_typ_char (t : A.typ) = match t with
-            A.Int -> L.const_int i8_t (Char.code 'i')
-          | A.Bool -> L.const_int i8_t (Char.code 'b')
-          | A.Char -> L.const_int i8_t (Char.code 'c')
-          | _ -> raise(Failure("non-basic type for chan; should've checked in parser")) in
         let t_char = typ_to_typ_char t in
         let ll_buf = expr m builder buf in
         L.build_call makechan_func [| t_char ; ll_buf |] "makechan" builder
-      | SAccess(n, sn, mn) -> 
+      | SSend (n, e) -> 
+        let chan = expr m builder (Int, SId(n)) in
+        if chan = L.const_pointer_null void_ptr_t then raise(Failure("Channel " ^ n ^ " uninitialized!"));
+        let value = expr m builder e in
+        L.build_call send_func [| chan ; typ_to_typ_char (fst e) ;
+            L.build_intcast value i32_t "tmp" builder |] "" builder
+      | SRecv(n, t) ->
+        let chan = expr m builder (Int, SId(n)) in
+        if chan = L.const_pointer_null void_ptr_t then raise(Failure("Channel " ^ n ^ " uninitialized!"));
+        let recv_by_typ (t : A.typ) = match t with 
+            A.Int -> L.build_call recv_int_func [| chan |] ("recv_int_from_" ^ n) builder
+          | A.Bool -> L.build_call recv_bool_func [| chan |] ("recv_bool_from_" ^ n) builder
+          | A.Char -> L.build_call recv_char_func [| chan |] ("recv_int_from_" ^ n) builder 
+          | _ -> raise(Failure("trying to receive non-basic type from channel; should've checked in parser")) in 
+        recv_by_typ t
+      | SAccess (n, sn, mn) -> 
         let struct_val = expr m builder (Struct(sn), SId(n)) in
         let (member_names, struct_t) = StringMap.find sn struct_decls in
         let compare_by (n1, _) (n2, _) = compare n1 n2 in
