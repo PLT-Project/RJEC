@@ -31,8 +31,7 @@ let translate (globals, functions, structs) =
   and i8_t       = L.i8_type     context
   and i1_t       = L.i1_type     context
   and void_t     = L.void_type   context 
-  and void_ptr_t = L.pointer_type (L.i8_type context)
-  and chan_t     = L.pointer_type (L.i8_type context) in
+  and void_ptr_t = L.pointer_type (L.i8_type context) in
   let func_t     = L.pointer_type (L.function_type i32_t [| void_ptr_t |]) in
 
   let rec generate_seq n = if n >= 0 then (n :: (generate_seq (n-1))) else [] in
@@ -59,7 +58,7 @@ let translate (globals, functions, structs) =
     | A.Bool  -> i1_t
     | A.Char ->  i8_t
     | A.Struct(n) -> snd (StringMap.find n struct_decls)
-    | A.Chan(_) -> chan_t
+    | A.Chan(_) -> void_ptr_t
   in
 
   let typ_to_typ_char (t : A.typ) = match t with
@@ -116,6 +115,11 @@ let translate (globals, functions, structs) =
   let recv_char_func : L.llvalue =
     L.declare_function "recv_char" recv_char_t the_module in
 
+  let closechan_t : L.lltype = 
+    L.function_type void_t [| void_ptr_t ; i8_t |] in
+  let closechan_func : L.llvalue = 
+    L.declare_function "closechan" closechan_t the_module in
+    
   let function_arg_structs = 
     let add_function_arg_struct m fdecl =
       let member_typs = Array.of_list (List.map (fun (t, n) -> ltype_of_typ t) fdecl.sformals) in
@@ -273,19 +277,20 @@ let translate (globals, functions, structs) =
         L.build_call makechan_func [| t_char ; ll_buf |] "makechan" builder
       | SSend (n, e) -> 
         let chan = expr m builder (Int, SId(n)) in
-        if chan = L.const_pointer_null void_ptr_t then raise(Failure("Channel " ^ n ^ " uninitialized!"));
         let value = expr m builder e in
         L.build_call send_func [| chan ; typ_to_typ_char (fst e) ;
             L.build_intcast value i32_t "tmp" builder |] "" builder
-      | SRecv(n, t) ->
+      | SRecv (n, t) ->
         let chan = expr m builder (Int, SId(n)) in
-        if chan = L.const_pointer_null void_ptr_t then raise(Failure("Channel " ^ n ^ " uninitialized!"));
         let recv_by_typ (t : A.typ) = match t with 
             A.Int -> L.build_call recv_int_func [| chan |] ("recv_int_from_" ^ n) builder
           | A.Bool -> L.build_call recv_bool_func [| chan |] ("recv_bool_from_" ^ n) builder
           | A.Char -> L.build_call recv_char_func [| chan |] ("recv_int_from_" ^ n) builder 
           | _ -> raise(Failure("trying to receive non-basic type from channel; should've checked in parser")) in 
         recv_by_typ t
+      | SClose (n, t) -> 
+        let chan = expr m builder (Int, SId(n)) in
+        L.build_call closechan_func [| chan ; typ_to_typ_char t |] "" builder
       | SAccess (n, sn, mn) -> 
         let struct_val = expr m builder (Struct(sn), SId(n)) in
         let (member_names, struct_t) = StringMap.find sn struct_decls in

@@ -1,0 +1,14 @@
+func foo (c chan int) {
+    for i := 0; i < 5; i = i + 1 {
+        a := <- c;
+        printi(a);
+    }
+}
+func main () {
+    c := make(chan int, 3);
+    yeet foo(c);
+    c <- 1;
+    c <- 2;
+    c <- 3;
+    close(c);
+}

@@ -166,6 +166,11 @@ let check (globals, (functions, structs)) =
         | tail -> type_of_identifier v_name tail
     in 
 
+    let check_chan n scope = match (type_of_identifier n scope) with
+        Chan(t) -> t
+      | _ -> raise(Failure("Trying to send through a non-channel variable"))
+    in
+
     (* Return a semantically-checked expression, i.e., with a type *)
     let rec expr (scope : typ StringMap.t list) (e : expr) : sexpr = match e with
         IntLit  l -> (Int, SIntLit l)
@@ -224,19 +229,16 @@ let check (globals, (functions, structs)) =
         let buf = check_buf buf_raw in
         (Chan(t), SMake(t, buf))
       | Send(n, e) -> 
-        let check_chan n = match (type_of_identifier n scope) with
-            Chan(t) -> t
-          | _ -> raise(Failure("Trying to send through a non-channel variable")) in
-        let chan_type = check_chan n in
+        let chan_type = check_chan n scope in
         let (t', e') = expr scope e in
         if t' <> chan_type then raise(Failure("Channel type mismatch with type of element to send"));
         (t', SSend(n, (t', e')))
-      | Recv(n) -> 
-        let check_chan n = match (type_of_identifier n scope) with
-            Chan(t) -> t
-          | _ -> raise(Failure("Trying to send through a non-channel variable")) in
-        let chan_type = check_chan n in
+      | Recv n -> 
+        let chan_type = check_chan n scope in
         (chan_type, SRecv(n, chan_type))
+      | Close n -> 
+        let chan_type = check_chan n scope in
+        (chan_type, SClose(n, chan_type))
       | Access(n, mn) -> 
         let check_struct (t : typ) = match t with
             Struct(n) -> n

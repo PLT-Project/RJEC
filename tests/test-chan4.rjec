@@ -1,6 +1,6 @@
 func foo1 (r chan int, s chan int) {
     for {
-        a := (<- r);
+        a := <- r;
         prints("receiver:");
         printi(a + 1);
         s <- (a * 2);
