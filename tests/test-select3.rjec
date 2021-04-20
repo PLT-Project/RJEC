@@ -1,9 +1,10 @@
 func foo(a chan int, b chan int, c chan int) {
     for {
+        var i int;
         select {
-        case i := <- a:
+        case i = <- a:
             printi(i);
-        case j := <- b:
+        case var j int = <- b:
             printi(j);
         case k := <- c:
             printi(k);

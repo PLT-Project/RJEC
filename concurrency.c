@@ -119,7 +119,7 @@ int selectchan(struct select_clause *clauses, int nclauses)
             break;
         }
     }
-    printf("select: got index %d\n", mill_idx);
+    // printf("select: got index %d\n", mill_idx);
     return mill_idx;
 }
 

@@ -1,22 +1,22 @@
-func foo(a chan int, b chan int, c chan int) {
+func foo(a chan int, b chan bool, c chan char) {
     for {
         select {
         case i := <- a:
             printi(i);
         case j := <- b:
-            printi(j);
+            printb(j);
         case k := <- c:
-            printi(k);
+            printc(k);
         }
     }
 }
 
 func main() {
     a := make(chan int);
-    b := make(chan int);
-    c := make(chan int);
+    b := make(chan bool);
+    c := make(chan char);
     yeet foo(a, b, c);
     a <- 777;
-    b <- 888;
-    c <- 1313;
+    b <- true;
+    c <- 'a';
 }
