@@ -399,6 +399,24 @@ let check (globals, (functions, structs)) =
           Call(_, _) -> (SDefer(expr scope e), scope)
         | _ -> raise(Failure("defering a non-function call"))
         ) e
+      | Select cl ->
+        let rec check_case_list scope = function
+            (case, sl) :: tl ->
+              let case_instr = (function
+                  Expr(Send(id, e)) -> SSend(id, expr scope e)
+                | Expr(Recv(id)) | AssignStmt(DeclAssign(_, [Recv(id)]))
+                  | AssignStmt(Assign(_, [Recv(id)]))
+                  | AssignStmt(Init(_, [Recv(id)])) ->
+                    SRecv(id, check_chan id scope)
+                | _ -> raise(Failure("wrong case format in semant"))
+              ) case in
+              let blockstmt = Block(case :: sl) in
+              let (ret, _) = check_stmt scope blockstmt in
+              let ret2 = check_case_list scope tl in
+              ((case_instr, ret) :: ret2)
+          | [] -> []
+        in
+        (SSelect(check_case_list scope cl), scope)
       | Block sl -> 
           let bscope = (create_scope []) :: scope in
           let rec check_stmt_list scope = function

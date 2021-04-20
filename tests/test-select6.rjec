@@ -1,0 +1,30 @@
+func foo(ch1 chan char, ch2 chan int, quit chan bool) {
+    for {
+        select {
+        case ch1 <- 'a':
+            prints("sending:");
+            printc('a');
+        case val2 := <- ch2:
+            prints("receiving:");
+            printi(val2);
+        case q := <- quit:
+            printb(q);
+            if q {
+                prints("quitting...");
+            }
+            return;
+        }
+    }
+}
+
+func main() {
+    ch1 := make(chan char);
+    ch2 := make(chan int);
+    quit := make(chan bool, 10);
+    yeet foo(ch1, ch2, quit);
+    for i := 0; i < 5; i = i + 1 {
+        printc(<-ch1);
+        ch2 <- i;
+    }
+    quit <- true;
+}

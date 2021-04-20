@@ -1,0 +1,23 @@
+func foo(a chan int, b chan int, c chan int) {
+    val := 1313;
+    for {
+        select {
+        case a <- 777:
+            printi(777);
+        case b <- 888:
+            printi(888);
+        case c <- val:
+            printi(val);
+        }
+    }
+}
+
+func main() {
+    a := make(chan int);
+    b := make(chan int);
+    c := make(chan int);
+    yeet foo(a, b, c);
+    printi(<-a);
+    printi(<-b);
+    printi(<-c);
+}

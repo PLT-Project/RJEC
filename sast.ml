@@ -37,12 +37,11 @@ type sstmt =
   | SReturn of sexpr list
   | SIf of sexpr * sstmt * sstmt
   | SFor of sstmt * sexpr * sstmt * sstmt
-(*For of (sassign_stmt option) * sexpr * (sassign_stmt option) * sstmt*)
   | SWhile of sexpr * sstmt
   | SVdeclStmt of (string * vdecl_typ) list
   | SDefer of sexpr
   | SYeet of sx
-
+  | SSelect of (sx * sstmt) list
 
   type sfunc_decl = {
     stypes : typ list;
