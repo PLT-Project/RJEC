@@ -81,9 +81,9 @@ void closechan(void *ch_void_ptr, char typ)
 
 struct select_clause {
     char op;
-    chan ch;
+    void *ch;
     void *val;
-    int len;
+    long len;
 };
 
 int selectchan(struct select_clause *clauses, int nclauses)
@@ -119,6 +119,7 @@ int selectchan(struct select_clause *clauses, int nclauses)
             break;
         }
     }
+    printf("select: got index %d\n", mill_idx);
     return mill_idx;
 }
 

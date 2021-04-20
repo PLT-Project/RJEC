@@ -1,0 +1,20 @@
+func foo(a chan int, b chan int) {
+    idx := -1;
+    for {
+        select {
+        case i := <- a:
+            idx = 0;
+        case j := <- b:
+            idx = 1;
+        }
+        printi(idx);
+    }
+}
+
+func main() {
+    a := make(chan int);
+    b := make(chan int);
+    yeet foo(a, b);
+    a <- 0;
+    b <- 1;
+}

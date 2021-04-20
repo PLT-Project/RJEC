@@ -27,7 +27,8 @@ let translate (globals, functions, structs) =
   let the_module = L.create_module context "RJEC" in
 
   (* Get types from the context *)
-  let i32_t      = L.i32_type    context
+  let i64_t      = L.i64_type    context
+  and i32_t      = L.i32_type    context
   and i8_t       = L.i8_type     context
   and i1_t       = L.i1_type     context
   and void_t     = L.void_type   context 
@@ -119,6 +120,13 @@ let translate (globals, functions, structs) =
     L.function_type void_t [| void_ptr_t ; i8_t |] in
   let closechan_func : L.llvalue = 
     L.declare_function "closechan" closechan_t the_module in
+  
+  let clause_member_typs = [| i8_t ; void_ptr_t ; void_ptr_t ; i64_t |] in
+  let clause_t = L.struct_type context clause_member_typs in
+  let select_t : L.lltype =
+    L.function_type i32_t [| L.pointer_type clause_t ; i32_t |] in
+  let select_func : L.llvalue =
+    L.declare_function "selectchan" select_t the_module in
     
   let function_arg_structs = 
     let add_function_arg_struct m fdecl =
@@ -471,6 +479,50 @@ let translate (globals, functions, structs) =
           (fdef, [| local |], result) in
 
       (builder, m, (construct_call f)::dl)
+    | SSelect cl ->
+        let num_elems = List.length cl in
+        let ptr = L.build_array_malloc clause_t
+            (L.const_int i32_t num_elems) "" builder 
+        in
+        ignore (List.fold_left (fun i clause ->
+            let op = (function
+                (SSend(_), _) -> L.const_int i8_t (Char.code 's')
+              | (SRecv(_), _) -> L.const_int i8_t (Char.code 'r')
+              | _ -> raise(Failure("invalid select clause in codegen"))
+            ) clause in
+            let chid = (function
+                (SSend(id, _), _) -> id
+              | (SRecv(id, _), _) -> id
+              | _ -> raise(Failure("invalid select clause in codegen"))
+            ) clause in
+            let chan = expr m builder (Int, SId(chid)) in
+            let chtyp = (function
+                (SSend(_, (t, _)), _) -> t
+              | (SRecv(_, t), _) -> t
+              | _ -> raise(Failure("invalid select clause in codegen"))
+            ) clause in
+            let local = L.build_alloca (ltype_of_typ chtyp) "" builder in
+            let value = (function
+                (SSend(id, e), _) -> expr m builder e
+              | (SRecv(_), _) -> L.const_int (ltype_of_typ chtyp) 0
+              | _ -> raise(Failure("invalid select clause in codegen"))
+            ) clause in
+            L.build_store value local builder;
+            let void_ptr_val = L.build_bitcast local void_ptr_t "" builder in
+            let len = L.size_of (ltype_of_typ chtyp) in
+            let idxs = List.rev (generate_seq (4 - 1)) in
+            let elem = List.fold_left2 (fun agg i v ->
+              L.build_insertvalue agg v i "clause" builder)
+            (L.const_null clause_t) idxs [op ; chan ; void_ptr_val ; len] in
+            let idx = L.const_int i32_t i in
+            let eptr = L.build_gep ptr [|idx|] "" builder in
+            let cptr = L.build_pointercast eptr 
+                (L.pointer_type (L.type_of elem)) "" builder in
+            let _ = (L.build_store elem cptr builder) 
+            in i+1)
+            0 cl) ;
+        L.build_call select_func [| ptr ; L.const_int i32_t num_elems |]
+          "select" builder ; (builder, m, dl)
     in
 
     (* Build the code for each statement in the function *)

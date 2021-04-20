@@ -143,8 +143,8 @@ else_opt:
   | ELSE LBRACE stmt_list RBRACE               { Block(List.rev $3) }
 
 case_list:
-    CASE case_stmt COLON stmt_list           { [($2, Block(List.rev $4))] }
-  | case_list CASE case_stmt COLON stmt_list { ($3, Block(List.rev $5)) :: $1 }
+    CASE case_stmt COLON stmt_list           { [($2, List.rev $4)] }
+  | case_list CASE case_stmt COLON stmt_list { ($3, List.rev $5) :: $1 }
 
 case_stmt:
     ID ARROW expr    { Expr (Send ($1, $3))     }
