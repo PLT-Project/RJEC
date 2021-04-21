@@ -330,8 +330,8 @@ let translate (globals, functions, structs) =
       | SClose (n, t) -> 
         let chan = expr m builder (Int, SId(n)) in
         L.build_call closechan_func [| chan ; typ_to_typ_char t |] "" builder
-      | SAccess (n, sn, mn) -> 
-        let struct_val = expr m builder (Struct(sn), SId(n)) in
+      | SAccess (sx, sn, mn) -> 
+        let struct_val = expr m builder (Struct(sn), sx) in
         let (member_names, struct_t) = StringMap.find sn struct_decls in
         let compare_by (n1, _) (n2, _) = compare n1 n2 in
         let sorted_names = List.map (fun (n, _) -> n) (List.sort compare_by (StringMap.bindings member_names)) in
@@ -447,9 +447,14 @@ let translate (globals, functions, structs) =
                             ignore(L.build_store v (lookup s m) builder); builder
                         | _ -> ignore(L.build_store e' (lookup s m) builder); builder in
                       handle_assign(e)
-      
-                  | (_, SAccess(n, sn, mn)) -> 
-                    let struct_val = L.build_load (lookup n m) n builder in 
+                  | (_, SSubscript(an, index)) -> 
+                    let value = expr m builder e in
+                    let arr = L.build_load (lookup an m) "tmp" builder in
+                    let idx = expr m builder index in 
+                    let ptr = L.build_gep arr [| idx |] "" builder in 
+                    ignore(L.build_store value ptr builder); builder
+                  | (_, SAccess(sx, sn, mn)) -> 
+                    let struct_val = expr m builder (Struct(sn), sx) in
                     let (member_names, struct_t) = StringMap.find sn struct_decls in
                     let compare_by (n1, _) (n2, _) = compare n1 n2 in
                     let sorted_names = List.map (fun (n, _) -> n) (List.sort compare_by (StringMap.bindings member_names)) in
@@ -457,7 +462,16 @@ let translate (globals, functions, structs) =
                     let idx = snd (List.hd (List.filter (fun (n, _) -> n = mn) name_idx_pairs)) in
                     let e' = expr m builder e in
                     let v = L.build_insertvalue struct_val e' idx mn builder in 
-                    ignore(L.build_store v (lookup n m) builder); builder 
+
+                    let insert_value sx = match sx with 
+                        SId(n) -> L.build_store v (lookup n m) builder
+                      | SSubscript(an, index) -> 
+                        let arr = L.build_load (lookup an m) "tmp" builder in
+                        let idx = expr m builder index in
+                        L.build_store v (L.build_gep arr [| idx |] "" builder) builder
+                      | _ -> raise(Failure("invalid access; should've checked in semant!"))
+                    in
+                    ignore(insert_value sx); builder 
                 ) ee) sl; (builder, m, dl)
 
           | SDeclAssign (vdl, assl) -> let (_, mm, dl) = stmt m dl builder (SVdeclStmt vdl) in 

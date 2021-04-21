@@ -23,7 +23,7 @@ type expr =
   | Binop of expr * op * expr
   | Unop of uop * expr
   | Call of string * expr list
-  | Access of string * string
+  | Access of expr * string
   | Subscript of string * expr
   | Send of string * expr
   | Recv of string
@@ -114,7 +114,7 @@ let rec string_of_expr = function
   | Unop(o, e) -> string_of_uop o ^ string_of_expr e
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
-  | Access(s, m) -> s ^ "." ^ m
+  | Access(s, m) -> (string_of_expr s) ^ "." ^ m
   | Subscript(a, i) -> a ^ "[" ^ string_of_expr i ^ "]"
   | Send(c, e) -> c ^ "<-" ^ string_of_expr e
   | Recv(c) -> "<-" ^ c

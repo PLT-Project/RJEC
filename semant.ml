@@ -250,16 +250,24 @@ let check (globals, (functions, structs)) =
       | Close n -> 
         let chan_type = check_chan n scope in
         (chan_type, SClose(n, chan_type))
-      | Access(n, mn) -> 
-        let check_struct (t : typ) = match t with
+      | Access(e, mn) -> 
+        let e' = expr scope e in
+        let extract_struct_name (t : typ) = match t with
             Struct(n) -> n
           | _ -> raise(Failure("Invalid syntax: access member field of non-struct object\n")) in
-        let sn = check_struct (type_of_identifier n scope) in
+        let check_struct_or_arr_field e' = match (snd e') with 
+            SId(n) -> extract_struct_name (type_of_identifier n scope)
+          | SSubscript(an, _) -> (function 
+              Array(Struct(n)) -> n
+            | _ -> raise(Failure("subscript on non-struct array element!"))
+          ) (type_of_identifier an scope)
+          | _ -> raise(Failure("invalid access; should've checked in semant!")) in
+        let sn = check_struct_or_arr_field e' in
         let smembers = find_struct sn in
         let t = match sn with 
           _ when StringMap.mem mn smembers -> StringMap.find mn smembers
         | _ -> raise(Failure("unknown field " ^ mn ^ " in struct " ^ sn)) in
-        (t, SAccess(n, sn, mn))
+        (t, SAccess((snd e'), sn, mn))
       | Subscript(s, e) -> 
         let arr = expr scope (Id s) in
         let array_t = (function 
@@ -318,7 +326,7 @@ let check (globals, (functions, structs)) =
           | Block sl -> List.iter forbid_defer sl
           | _ -> () in
         forbid_defer st;
-
+        
         let (sstmt, nscope) = 
         (function 
             None      -> (SExpr(Int, SNoexpr), scope)
@@ -334,7 +342,7 @@ let check (globals, (functions, structs)) =
         ) nscope e3 in 
 
         let (sstmt4, nscope) = check_stmt nscope st in 
-        (SFor(sstmt, sexpr, sstmt3, sstmt4), nscope) 
+        (SFor(sstmt, sexpr, sstmt3, sstmt4), scope) 
       | While(e, s) -> 
         let rec forbid_defer = function
             Defer _ -> raise(Failure("defer statement inside of while block"))
@@ -381,6 +389,11 @@ let check (globals, (functions, structs)) =
                       let (t, e') = expr scope e in 
                       if mt <> t then raise(Failure("illegal assignment " ^ string_of_typ mt ^ " = " ^ 
                         string_of_typ t)); ((mt, SAccess(n, sn, mn)) , (t, e'))
+                    | SSubscript (an, index) ->
+                      let mt = type_of_identifier an scope in
+                      let (t, e') = expr scope e in 
+                      if mt <> Array(t) then raise(Failure("illegal assignment of element to array"));
+                      ((mt, SSubscript(an, index)), (t, e'))
                     | _     -> raise(Failure("invalid assignment"))
                   ) e' 
                 in  

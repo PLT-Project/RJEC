@@ -13,7 +13,7 @@ and sx =
   | SBinop of sexpr * op * sexpr
   | SUnop of uop * sexpr
   | SCall of string * sexpr list
-  | SAccess of string * string * string 
+  | SAccess of sx * string * string 
   | SMake of typ * sexpr
   | SSend of string * sexpr
   | SRecv of string * typ

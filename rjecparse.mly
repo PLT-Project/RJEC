@@ -185,7 +185,7 @@ expr:
   | NOT expr         { Unop(Not, $2)          }
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN { $2                   }
-  | ID DOT ID        { Access($1, $3)         }
+  | expr DOT ID        { Access($1, $3)         }
   | ID LSQUARE expr RSQUARE   { Subscript($1, $3) }
   | ID ARROW expr    { Send($1, $3)           }
   | ARROW ID         { Recv($2)           }
