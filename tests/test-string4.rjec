@@ -1,0 +1,14 @@
+func main () {
+    x := "ello";
+    for i := 0; !(x[i] == '\0'); i = i + 1 {
+        printc(x[i]);
+    }
+    prints(x);
+
+    x[1] = x[2];
+    x[3] = '\0';
+    for i := 0; !(x[i] == '\0'); i = i + 1 {
+        printc(x[i]);
+    }
+    prints(x);
+}

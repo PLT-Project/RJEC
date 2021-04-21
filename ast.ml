@@ -14,7 +14,7 @@ type bind = typ * string
 type expr =
     IntLit of int
   | StrLit of string
-  | CharLit of string
+  | CharLit of int
   | BoolLit of bool
   | ArrLit of typ * expr list
   | StructLit of string * (string * expr) list
@@ -98,7 +98,7 @@ let rec string_of_typ = function
 let rec string_of_expr = function
     IntLit(l) -> string_of_int l
   | StrLit(l) -> l
-  | CharLit(l) -> l
+  | CharLit(l) -> String.make 1 (Char.chr l)
   | BoolLit(true) -> "true"
   | BoolLit(false) -> "false"
   | ArrLit(t, el) -> "[]" ^ string_of_typ t

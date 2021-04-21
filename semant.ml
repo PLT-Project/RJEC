@@ -33,7 +33,7 @@ let check (globals, (functions, structs)) =
   let default_vals_in_sexpr : typ -> typ * sx = function
       Int -> (Int, SIntLit 0)
     | Bool -> (Bool, SBoolLit false)
-    | Char -> (Char, SCharLit "\x00")
+    | Char -> (Char, SCharLit 0)
   in
   let flatten_global global = List.map
     (fun name -> (vdecl_typ_to_typ (fst global), name)) (snd global)

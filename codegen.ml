@@ -258,7 +258,7 @@ let translate (globals, functions, structs) =
     let rec expr m builder ((_, e) : sexpr) = match e with
         SIntLit i  -> L.const_int i32_t i
       | SStrLit s   -> L.build_global_stringptr s "strlit" builder
-      | SCharLit c  -> L.const_int i8_t (Char.code (String.get c 0))
+      | SCharLit c  -> L.const_int i8_t c
       | SBoolLit b  -> L.const_int i1_t (if b then 1 else 0)
       | SStructLit(sn, ml) -> 
         let (_, struct_t) = StringMap.find sn struct_decls in

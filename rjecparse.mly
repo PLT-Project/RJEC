@@ -10,9 +10,9 @@ open Ast
 %token RETURN IF ELSE FOR WHILE INT BOOL CHAR CHAN STRUCT
 %token VAR FUNC YEET MAKE CLOSE
 %token ARROW BREAK CONTINUE DEFER SELECT CASE
-%token <int> ILIT
+%token <int> ILIT CLIT
 %token <bool> BLIT
-%token <string> SLIT CLIT ID
+%token <string> SLIT ID
 %token EOF
 
 %start program
