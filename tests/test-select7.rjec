@@ -1,0 +1,27 @@
+func producer (data chan int, quit chan int) {
+    i := 0;
+    for {
+        i = i + 1;
+        select {
+            case data <- i:
+            case <- quit:
+                close(data);
+                return;
+        }
+    }
+}
+
+func main () {
+    data := make(chan int);
+    quit := make(chan int);
+    
+    yeet producer(data, quit);
+    
+    for i := <-data; !(i == 0); i = <-data {
+        printi(i);
+        if i == 10 {
+            quit <- 1;
+            close(quit);
+        }
+    }
+}
