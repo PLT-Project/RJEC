@@ -364,6 +364,19 @@ let translate (globals, functions, structs) =
         fun arg -> match arg with
             (_, SStructLit(s, _)) -> let p = expr m builder arg in 
                                      L.build_load p (s ^ "_lit") builder
+          | (_, SStrLit l) -> 
+            let arr_len = (String.length l) + 1 in
+            let arr_t = (ltype_of_typ A.Char) in
+            let arr = L.build_array_malloc arr_t (L.const_int i32_t arr_len) "arrlit" builder in
+            let idxs = List.rev (generate_seq (arr_len - 1)) in
+
+            List.iter (fun i -> 
+              let c = (if i = (String.length l) then 0 else Char.code (String.get l i)) in
+              let elem = L.const_int i8_t c in
+              let arr_ptr = L.build_gep arr [| (L.const_int i32_t i) |] "" builder in
+              let elem_ptr = L.build_pointercast arr_ptr (L.pointer_type arr_t) "" builder in
+              ignore(L.build_store elem elem_ptr builder)
+            ) idxs; arr
           | _ -> expr m builder arg
       ) (List.rev args)) in
 
@@ -445,22 +458,31 @@ let translate (globals, functions, structs) =
         L.build_call yeet_func [| fdef ; local |] "" builder ; (builder, m, dl)
       | SAssignStmt s -> let assign_stmt builder = function
             SAssign sl -> 
+              let extract_value e = match e with 
+                  (_, SStructLit(_, _)) -> let ptr = expr m builder e in 
+                                            L.build_load ptr "tmp" builder
+                | (_, SStrLit l) -> 
+                  let arr_len = (String.length l) + 1 in
+                  let arr_t = (ltype_of_typ A.Char) in
+                  let arr = L.build_array_malloc arr_t (L.const_int i32_t arr_len) "arrlit" builder in
+                  let idxs = List.rev (generate_seq (arr_len - 1)) in
+
+                  List.iter (fun i -> 
+                    let c = (if i = (String.length l) then 0 else Char.code (String.get l i)) in
+                    let elem = L.const_int i8_t c in
+                    let arr_ptr = L.build_gep arr [| (L.const_int i32_t i) |] "" builder in
+                    let elem_ptr = L.build_pointercast arr_ptr (L.pointer_type arr_t) "" builder in
+                    ignore(L.build_store elem elem_ptr builder)
+                  ) idxs; arr
+                | _ -> expr m builder e
+              in
               List.map (fun (ee, e) -> 
                 (function 
                     (_, SId(s)) -> 
-                      let e' = expr m builder e in
-                      let handle_assign = function
-                          (_, SStructLit(_, _)) -> 
-                            let v = L.build_load e' "tmp" builder in
-                            ignore(L.build_store v (lookup s m) builder); builder
-                        | _ -> ignore(L.build_store e' (lookup s m) builder); builder in
-                      handle_assign(e)
+                      let value = extract_value e in
+                      ignore(L.build_store value (lookup s m) builder); builder
                   | (_, SSubscript(an, index)) -> 
-                    let extract_value e = match e with 
-                        (_, SStructLit(_, _)) -> let ptr = expr m builder e in 
-                                                  L.build_load ptr "tmp" builder
-                      | _ -> expr m builder e
-                    in
+                    
                     let value = extract_value e in
                     let arr = L.build_load (lookup an m) "tmp" builder in
                     let idx = expr m builder index in 

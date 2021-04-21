@@ -1,0 +1,7 @@
+func main () {
+    var x [5]char;
+    x = "ello";
+    for i := 0; i < 4; i = i + 1 {
+        printc(x[i]);
+    }
+}

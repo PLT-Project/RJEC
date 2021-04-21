@@ -188,6 +188,15 @@ let check (globals, (functions, structs)) =
       | StrLit l  -> (Array(Char), SStrLit l)
       | CharLit l  -> (Char, SCharLit l)
       | BoolLit l  -> (Bool, SBoolLit l)
+      | ArrLit(t, el) -> 
+        if List.length el = 0 then raise(Failure("zero-length arrays not supported!"));
+        let check_elem e = 
+          let (t', e') = expr scope e in
+          if t' <> t then raise(Failure("array element doesn't match declared array type!"));
+          (t', e')
+        in 
+        let selems = List.map check_elem el in
+        (Array(t), SArrLit(t, selems))
       | StructLit(sn, ml) -> 
         let smembers = find_struct sn in
         let check_member sname members vm (n, e) = 
@@ -202,15 +211,6 @@ let check (globals, (functions, structs)) =
           | _ -> StringMap.add n (default_vals_in_sexpr t) m
         ) member_vals (StringMap.bindings smembers) in
         (Struct(sn), SStructLit(sn, StringMap.bindings full_member_vals))
-      | ArrLit(t, el) -> 
-        if List.length el = 0 then raise(Failure("zero-length arrays not supported!"));
-        let check_elem e = 
-          let (t', e') = expr scope e in
-          if t' <> t then raise(Failure("array element doesn't match declared array type!"));
-          (t', e')
-        in 
-        let selems = List.map check_elem el in
-        (Array(t), SArrLit(t, selems))
       | Id s       -> (type_of_identifier s scope, SId s)
       | Unop(op, e) as ex -> 
           let (t, e') = expr scope e in
@@ -426,6 +426,7 @@ let check (globals, (functions, structs)) =
                             vdecl_to_svdecl_typ (typ_to_vdecl_typ elem_t),
                             (Int, SIntLit(arr_len))
                           )
+                      | (_, SStrLit l) -> SArrayInit(SChar, (Int, SIntLit((String.length l) + 1)))
                       | (Array(elem_t), _) -> SArrayInit(
                           vdecl_to_svdecl_typ (typ_to_vdecl_typ elem_t),
                           (Int, SIntLit(1))
