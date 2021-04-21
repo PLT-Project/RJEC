@@ -1,0 +1,13 @@
+func foo (n int) {
+    var x [n]int;
+    for i := 0; i < n ; i = i + 1 {
+        x[i] = i * 2;
+    }
+    for i := 0; i < n ; i = i + 1 {
+        printi(x[i]);
+    }
+}
+
+func main () {
+    foo(5);
+}

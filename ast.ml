@@ -8,22 +8,21 @@ type typ = Int | Bool | Char
   | Chan of typ
   | Array of typ
   | Struct of string
-  | Func of typ list * typ list
 
 type bind = typ * string
 
 type expr =
     IntLit of int
   | StrLit of string
-  | CharLit of string
+  | CharLit of int
   | BoolLit of bool
-  | ArrLit of expr * typ * expr list
+  | ArrLit of typ * expr list
   | StructLit of string * (string * expr) list
   | Id of string
   | Binop of expr * op * expr
   | Unop of uop * expr
   | Call of string * expr list
-  | Access of string * string
+  | Access of expr * string
   | Subscript of string * expr
   | Send of string * expr
   | Recv of string
@@ -94,17 +93,15 @@ let rec string_of_typ = function
   | Bool -> "bool"
   | Char -> "char"
   | Struct(t) -> t
-  | Func(p, r) -> "func(" ^ String.concat ", " (List.map string_of_typ p) ^ ")"
-        ^ "(" ^ String.concat ", " (List.map string_of_typ r) ^ ")"
   | Chan(t) -> "chan " ^ string_of_typ t 
 
 let rec string_of_expr = function
     IntLit(l) -> string_of_int l
   | StrLit(l) -> l
-  | CharLit(l) -> l
+  | CharLit(l) -> String.make 1 (Char.chr l)
   | BoolLit(true) -> "true"
   | BoolLit(false) -> "false"
-  | ArrLit(s, t, el) -> "[" ^ string_of_expr s ^ "]" ^ string_of_typ t
+  | ArrLit(t, el) -> "[]" ^ string_of_typ t
       ^ "{" ^ String.concat ", " (List.map string_of_expr el) ^ "}"
   | StructLit(n, m) -> "struct " ^ n ^ "{" ^ String.concat ", "
       (List.map (fun (n, v) -> (n ^ ": " ^ string_of_expr (v))) m) ^ "}"
@@ -114,7 +111,7 @@ let rec string_of_expr = function
   | Unop(o, e) -> string_of_uop o ^ string_of_expr e
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
-  | Access(s, m) -> s ^ "." ^ m
+  | Access(s, m) -> (string_of_expr s) ^ "." ^ m
   | Subscript(a, i) -> a ^ "[" ^ string_of_expr i ^ "]"
   | Send(c, e) -> c ^ "<-" ^ string_of_expr e
   | Recv(c) -> "<-" ^ c

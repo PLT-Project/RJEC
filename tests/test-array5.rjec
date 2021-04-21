@@ -1,0 +1,26 @@
+struct foo {
+    x int;
+    y char;
+    z bool;
+}
+
+func my_func (n int, c chan int) {
+    var a [n]struct foo;
+    for i := 0; i < n; i = i + 1 {
+        printi(a[i].x);
+        a[i].y = 'a';
+        printb(a[i].z);
+    }
+    for {
+        printc(a[<- c].y);
+    }
+}
+
+func main() {
+    c := make(chan int);
+    yeet my_func(5, c);
+
+    c <- 1;
+    c <- 2;
+    c <- 3;
+}

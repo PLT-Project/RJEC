@@ -6,14 +6,15 @@ type sexpr = typ * sx
 and sx =
     SIntLit of int
   | SStrLit of string
-  | SCharLit of string
+  | SCharLit of int
   | SBoolLit of bool
   | SStructLit of string * (string * sexpr) list
+  | SArrLit of typ * sexpr list
   | SId of string
   | SBinop of sexpr * op * sexpr
   | SUnop of uop * sexpr
   | SCall of string * sexpr list
-  | SAccess of string * string * string 
+  | SAccess of sx * string * string 
   | SMake of typ * sexpr
   | SSend of string * sexpr
   | SRecv of string * typ
@@ -59,7 +60,7 @@ let rec string_of_sexpr (t, e) =
   "(" ^ string_of_typ t ^ " : " ^ (match e with
     SIntLit(l) -> string_of_int l
   | SStrLit(l) -> l
-  | SCharLit(l) -> l
+  | SCharLit(l) -> String.make 1 (Char.chr l)
   | SBoolLit(true) -> "true"
   | SBoolLit(false) -> "false"
   | SId(s) -> s

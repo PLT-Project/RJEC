@@ -55,7 +55,8 @@ rule token = parse
 | "false"  { BLIT(false) }
 | digits as lxm { ILIT(int_of_string lxm) }
 | '\"'     { str (Buffer.create 16) lexbuf }
-| '\'' _ '\'' as lxm { CLIT(String.sub lxm 1 2) }
+| "\'\\0\'"    { CLIT(0) }
+| '\'' _ '\'' as lxm { CLIT(Char.code (String.get lxm 1)) }
 | ['a'-'z' 'A'-'Z']['a'-'z' 'A'-'Z' '0'-'9' '_']*     as lxm { ID(lxm) }
 | eof { EOF }
 | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }

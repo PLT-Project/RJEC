@@ -33,7 +33,7 @@ let check (globals, (functions, structs)) =
   let default_vals_in_sexpr : typ -> typ * sx = function
       Int -> (Int, SIntLit 0)
     | Bool -> (Bool, SBoolLit false)
-    | Char -> (Char, SCharLit "\x00")
+    | Char -> (Char, SCharLit 0)
   in
   let flatten_global global = List.map
     (fun name -> (vdecl_typ_to_typ (fst global), name)) (snd global)
@@ -188,6 +188,15 @@ let check (globals, (functions, structs)) =
       | StrLit l  -> (Array(Char), SStrLit l)
       | CharLit l  -> (Char, SCharLit l)
       | BoolLit l  -> (Bool, SBoolLit l)
+      | ArrLit(t, el) -> 
+        if List.length el = 0 then raise(Failure("zero-length arrays not supported!"));
+        let check_elem e = 
+          let (t', e') = expr scope e in
+          if t' <> t then raise(Failure("array element doesn't match declared array type!"));
+          (t', e')
+        in 
+        let selems = List.map check_elem el in
+        (Array(t), SArrLit(t, selems))
       | StructLit(sn, ml) -> 
         let smembers = find_struct sn in
         let check_member sname members vm (n, e) = 
@@ -202,8 +211,6 @@ let check (globals, (functions, structs)) =
           | _ -> StringMap.add n (default_vals_in_sexpr t) m
         ) member_vals (StringMap.bindings smembers) in
         (Struct(sn), SStructLit(sn, StringMap.bindings full_member_vals))
-      (* TODO: composite literals *)
-      (*| Noexpr     -> (Void, SNoexpr)*)
       | Id s       -> (type_of_identifier s scope, SId s)
       | Unop(op, e) as ex -> 
           let (t, e') = expr scope e in
@@ -250,16 +257,24 @@ let check (globals, (functions, structs)) =
       | Close n -> 
         let chan_type = check_chan n scope in
         (chan_type, SClose(n, chan_type))
-      | Access(n, mn) -> 
-        let check_struct (t : typ) = match t with
+      | Access(e, mn) -> 
+        let e' = expr scope e in
+        let extract_struct_name (t : typ) = match t with
             Struct(n) -> n
           | _ -> raise(Failure("Invalid syntax: access member field of non-struct object\n")) in
-        let sn = check_struct (type_of_identifier n scope) in
+        let check_struct_or_arr_field e' = match (snd e') with 
+            SId(n) -> extract_struct_name (type_of_identifier n scope)
+          | SSubscript(an, _) -> (function 
+              Array(Struct(n)) -> n
+            | _ -> raise(Failure("subscript on non-struct array element!"))
+          ) (type_of_identifier an scope)
+          | _ -> raise(Failure("invalid access; should've checked in semant!")) in
+        let sn = check_struct_or_arr_field e' in
         let smembers = find_struct sn in
         let t = match sn with 
           _ when StringMap.mem mn smembers -> StringMap.find mn smembers
         | _ -> raise(Failure("unknown field " ^ mn ^ " in struct " ^ sn)) in
-        (t, SAccess(n, sn, mn))
+        (t, SAccess((snd e'), sn, mn))
       | Subscript(s, e) -> 
         let arr = expr scope (Id s) in
         let array_t = (function 
@@ -318,7 +333,7 @@ let check (globals, (functions, structs)) =
           | Block sl -> List.iter forbid_defer sl
           | _ -> () in
         forbid_defer st;
-
+        
         let (sstmt, nscope) = 
         (function 
             None      -> (SExpr(Int, SNoexpr), scope)
@@ -334,7 +349,7 @@ let check (globals, (functions, structs)) =
         ) nscope e3 in 
 
         let (sstmt4, nscope) = check_stmt nscope st in 
-        (SFor(sstmt, sexpr, sstmt3, sstmt4), nscope) 
+        (SFor(sstmt, sexpr, sstmt3, sstmt4), scope) 
       | While(e, s) -> 
         let rec forbid_defer = function
             Defer _ -> raise(Failure("defer statement inside of while block"))
@@ -381,6 +396,11 @@ let check (globals, (functions, structs)) =
                       let (t, e') = expr scope e in 
                       if mt <> t then raise(Failure("illegal assignment " ^ string_of_typ mt ^ " = " ^ 
                         string_of_typ t)); ((mt, SAccess(n, sn, mn)) , (t, e'))
+                    | SSubscript (an, index) ->
+                      let mt = type_of_identifier an scope in
+                      let (t, e') = expr scope e in 
+                      if mt <> Array(t) then raise(Failure("illegal assignment of element to array"));
+                      ((mt, SSubscript(an, index)), (t, e'))
                     | _     -> raise(Failure("invalid assignment"))
                   ) e' 
                 in  
@@ -398,8 +418,23 @@ let check (globals, (functions, structs)) =
                     ) v in
 
                     let (t, e') = expr scope e in 
-                    let nscope = add_to_scope t s scope in 
-                    (SDeclAssign([(s, vdecl_to_svdecl_typ (typ_to_vdecl_typ t))], [(s, (t, e'))]) :: ll, 
+                    let nscope = add_to_scope t s scope in
+                    let lhs_svdecl = (function
+                        (_, SArrLit(elem_t, el)) -> 
+                          let arr_len = List.length el in 
+                          SArrayInit(
+                            vdecl_to_svdecl_typ (typ_to_vdecl_typ elem_t),
+                            (Int, SIntLit(arr_len))
+                          )
+                      | (_, SStrLit l) -> SArrayInit(SChar, (Int, SIntLit((String.length l) + 1)))
+                      | (Array(elem_t), _) -> SArrayInit(
+                          vdecl_to_svdecl_typ (typ_to_vdecl_typ elem_t),
+                          (Int, SIntLit(1))
+                        )
+                      | _ -> vdecl_to_svdecl_typ (typ_to_vdecl_typ t)
+                    ) (t, e')
+                    in
+                    (SDeclAssign([(s, lhs_svdecl)], [(s, (t, e'))]) :: ll, 
                       nscope)
                 in 
               let (dal, nscope) = List.fold_left2 helper ([], scope) vl el 
