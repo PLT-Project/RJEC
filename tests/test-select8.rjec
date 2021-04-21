@@ -1,0 +1,34 @@
+/* NOTE: might be race conditions causing variations of the test output */
+
+func foo (x []chan int){
+    c0, c1, c2, c3 := x[0], x[1], x[2], x[3];
+    for {
+        select {
+        case i := <- c0:
+            printi(i);
+        case j := <- c1:
+            printi(j);
+        case c2 <- 1:
+            prints("sent 1 through c2");
+        case c3 <- 2:
+        }
+    }
+}
+
+func main () {
+    x := []chan int {
+        make(chan int),
+        make(chan int, 2),
+        make(chan int, 2),
+        make(chan int)
+    };
+
+    yeet foo(x);
+    c0, c1, c2, c3 := x[0], x[1], x[2], x[3];
+    
+    c0 <- 1;
+    c0 <- 2;
+    c1 <- 10;
+    printi(<- c3);
+    printi(<- c3);
+}
