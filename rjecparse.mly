@@ -62,34 +62,40 @@ return_types:
   | typ                    { [$1] }
 /*  | LPAREN typ_list RPAREN {   $2 } */
 
-typ_list:
-    typ                   { [$1]     }
-  | typ_list COMMA typ { $3 :: $1 }
+// typ_list:
+//     typ                   { [$1]     }
+//   | typ_list COMMA typ { $3 :: $1 }
 
 typ:
     INT   { Int   }
   | BOOL  { Bool  }
   | CHAR  { Char }
   | CHAN basic_typ           { Chan($2)  }
-  | LSQUARE RSQUARE typ { Array($3) }
+  | LSQUARE RSQUARE non_arr_typ { Array($3) }
   | STRUCT ID    { Struct($2) }
-  | FUNC LPAREN typ_opt RPAREN return_types { Func($3, $5) }
-
+  
 basic_typ:
     INT   { Int   }
   | BOOL  { Bool  }
   | CHAR  { Char }
 
-typ_opt:
-    /* nothing */ { [] }
-  | typ_list      { $1 }
+non_arr_typ:
+    INT   { Int   }
+  | BOOL  { Bool  }
+  | CHAR  { Char }
+  | CHAN basic_typ           { Chan($2)  }
+  | STRUCT ID    { Struct($2) }
+
+// typ_opt:
+//     /* nothing */ { [] }
+//   | typ_list      { $1 }
 
 vdecl_typ:
     INT   { Int   }
   | BOOL  { Bool  }
   | CHAR  { Char }
   | CHAN basic_typ                       { Chan($2)  }
-  | LSQUARE expr RSQUARE typ { ArrayInit($2, $4) }
+  | LSQUARE expr RSQUARE non_arr_typ { ArrayInit($2, $4) }
   | STRUCT ID    { Struct($2) }
 
 vdecl:
@@ -166,8 +172,8 @@ expr:
   | SLIT	           { StrLit($1)             }
   | CLIT	           { CharLit($1)            }
   | BLIT             { BoolLit($1)            }
-  | LSQUARE expr RSQUARE typ LBRACE args_list RBRACE
-                     { ArrLit($2, $4, $6)     }
+  | LSQUARE RSQUARE typ LBRACE args_list RBRACE
+                     { ArrLit($3, List.rev $5)     }
   | STRUCT ID LBRACE element_list_opt RBRACE
                      { StructLit($2, $4)      }
   | ID               { Id($1)                 }

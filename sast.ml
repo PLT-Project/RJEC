@@ -9,6 +9,7 @@ and sx =
   | SCharLit of string
   | SBoolLit of bool
   | SStructLit of string * (string * sexpr) list
+  | SArrLit of typ * sexpr list
   | SId of string
   | SBinop of sexpr * op * sexpr
   | SUnop of uop * sexpr

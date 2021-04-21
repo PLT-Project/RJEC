@@ -1,0 +1,6 @@
+func main () {
+    x := []int{1, 2, 3, 4, 5};
+    for i := 0; i < 5; i = i + 1 {
+        printi(x[i]);
+    }
+}

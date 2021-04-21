@@ -202,8 +202,15 @@ let check (globals, (functions, structs)) =
           | _ -> StringMap.add n (default_vals_in_sexpr t) m
         ) member_vals (StringMap.bindings smembers) in
         (Struct(sn), SStructLit(sn, StringMap.bindings full_member_vals))
-      (* TODO: composite literals *)
-      (*| Noexpr     -> (Void, SNoexpr)*)
+      | ArrLit(t, el) -> 
+        if List.length el = 0 then raise(Failure("zero-length arrays not supported!"));
+        let check_elem e = 
+          let (t', e') = expr scope e in
+          if t' <> t then raise(Failure("array element doesn't match declared array type!"));
+          (t', e')
+        in 
+        let selems = List.map check_elem el in
+        (Array(t), SArrLit(t, selems))
       | Id s       -> (type_of_identifier s scope, SId s)
       | Unop(op, e) as ex -> 
           let (t, e') = expr scope e in
@@ -411,8 +418,22 @@ let check (globals, (functions, structs)) =
                     ) v in
 
                     let (t, e') = expr scope e in 
-                    let nscope = add_to_scope t s scope in 
-                    (SDeclAssign([(s, vdecl_to_svdecl_typ (typ_to_vdecl_typ t))], [(s, (t, e'))]) :: ll, 
+                    let nscope = add_to_scope t s scope in
+                    let lhs_svdecl = (function
+                        (_, SArrLit(elem_t, el)) -> 
+                          let arr_len = List.length el in 
+                          SArrayInit(
+                            vdecl_to_svdecl_typ (typ_to_vdecl_typ elem_t),
+                            (Int, SIntLit(arr_len))
+                          )
+                      | (Array(elem_t), _) -> SArrayInit(
+                          vdecl_to_svdecl_typ (typ_to_vdecl_typ elem_t),
+                          (Int, SIntLit(1))
+                        )
+                      | _ -> vdecl_to_svdecl_typ (typ_to_vdecl_typ t)
+                    ) (t, e')
+                    in
+                    (SDeclAssign([(s, lhs_svdecl)], [(s, (t, e'))]) :: ll, 
                       nscope)
                 in 
               let (dal, nscope) = List.fold_left2 helper ([], scope) vl el 

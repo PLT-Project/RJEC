@@ -1,0 +1,10 @@
+func factorial (x []int, l int) int{
+    ret := 1;
+    for i := 0; i < l; i = i + 1 {
+        ret = ret * x[i];
+    }
+    return ret;
+}
+func main () {
+    printi(factorial([]int{1, 2, 3, 4, 5}, 5));
+}

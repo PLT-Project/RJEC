@@ -1,0 +1,10 @@
+func foo(x []int) {
+    x[0] = x[0] + 2;
+}
+
+func main() {
+    var x [10]int;
+    x[0] = 4;
+    foo(x);
+    printi(x[0]);
+}
