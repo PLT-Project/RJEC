@@ -1,0 +1,6 @@
+func main () {
+    var x, y [10]int;
+    for i := 0; i < 10; i = i + 1 {
+        printi(x[i]);
+    }
+}

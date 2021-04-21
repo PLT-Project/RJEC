@@ -171,8 +171,19 @@ let check (globals, (functions, structs)) =
       | _ -> raise(Failure("Trying to send through a non-channel variable"))
     in
 
+    let rec vdecl_to_svdecl_typ (t: vdecl_typ) : svdecl_typ = match t with
+        Int -> SInt
+      | Bool -> SBool
+      | Char -> SChar
+      | Chan(t) -> SChan(vdecl_to_svdecl_typ (typ_to_vdecl_typ t))
+      | Struct(s) -> SStruct(s)
+      | ArrayInit(e, t) -> 
+          let (t', e') = expr scope e in 
+          if t' <> Int then raise(Failure("array size can only be integer expressions!"));
+          SArrayInit(vdecl_to_svdecl_typ (typ_to_vdecl_typ t), (t', e'))
+    and
     (* Return a semantically-checked expression, i.e., with a type *)
-    let rec expr (scope : typ StringMap.t list) (e : expr) : sexpr = match e with
+    expr (scope : typ StringMap.t list) (e : expr) : sexpr = match e with
         IntLit  l -> (Int, SIntLit l)
       | StrLit l  -> (Array(Char), SStrLit l)
       | CharLit l  -> (Char, SCharLit l)
@@ -249,6 +260,14 @@ let check (globals, (functions, structs)) =
           _ when StringMap.mem mn smembers -> StringMap.find mn smembers
         | _ -> raise(Failure("unknown field " ^ mn ^ " in struct " ^ sn)) in
         (t, SAccess(n, sn, mn))
+      | Subscript(s, e) -> 
+        let arr = expr scope (Id s) in
+        let array_t = (function 
+                          Array(t) -> t
+                        | _ -> raise(Failure("using subscript on non-array object!"))) (fst arr) in
+        let index = expr scope e in
+        if (fst index) <> Int then raise(Failure("subscript with non-integer expression!"));
+        (array_t, SSubscript(s, index))
       | Call(fname, args) as call -> 
           let fd = find_func fname in
           let param_length = List.length fd.formals in
@@ -368,7 +387,7 @@ let check (globals, (functions, structs)) =
               (SAssign (List.map2 helper vl el), scope)
 
             | DeclAssign(vd, el) -> let (_, nscope) = check_stmt scope (VdeclStmt vd) in 
-                let vdl = List.map (fun n -> (n, (fst vd)) ) (snd vd) in
+                let vdl = List.map (fun n -> (n, vdecl_to_svdecl_typ (fst vd)) ) (snd vd) in
                 let assl = List.map2 (check_assign_var nscope) (snd vd) el in 
                 (SDeclAssign(vdl, assl), nscope)
             | Init(vl, el) -> 
@@ -380,7 +399,8 @@ let check (globals, (functions, structs)) =
 
                     let (t, e') = expr scope e in 
                     let nscope = add_to_scope t s scope in 
-                    (SDeclAssign([(s, typ_to_vdecl_typ t)], [(s, (t, e'))]) :: ll, nscope)
+                    (SDeclAssign([(s, vdecl_to_svdecl_typ (typ_to_vdecl_typ t))], [(s, (t, e'))]) :: ll, 
+                      nscope)
                 in 
               let (dal, nscope) = List.fold_left2 helper ([], scope) vl el 
               in (SInit(List.rev dal), nscope)
@@ -391,7 +411,7 @@ let check (globals, (functions, structs)) =
       | VdeclStmt s -> 
           let (t, nl) = s in
           let (nscope, vdecls) = List.fold_left (fun (scope, vdecls) n -> 
-            (add_to_scope (vdecl_typ_to_typ t) n scope, (n, t)::vdecls)
+            (add_to_scope (vdecl_typ_to_typ t) n scope, (n, vdecl_to_svdecl_typ t)::vdecls)
           ) (scope, []) nl
           in (SVdeclStmt(vdecls), nscope)
       | Defer e -> 

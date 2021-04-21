@@ -83,6 +83,11 @@ let translate (globals, functions, structs) =
   let printf_func : L.llvalue = 
       L.declare_function "printf" printf_t the_module in
 
+  let memset_t : L.lltype = 
+    L.function_type void_ptr_t [| void_ptr_t ; i32_t ; i32_t |] in
+  let memset_func : L.llvalue = 
+    L.declare_function "memset" memset_t the_module in
+
   let printbool_t : L.lltype =
       L.function_type i32_t [| i1_t |] in
   let printbool_func : L.llvalue =
@@ -221,6 +226,32 @@ let translate (globals, functions, structs) =
       | Struct(s) -> Struct(s)
     in 
 
+    let rec svdecl_typ_to_typ : svdecl_typ -> A.typ = function
+        SInt -> Int
+      | SBool -> Bool
+      | SChar -> Char
+      | SChan(t) -> Chan(svdecl_typ_to_typ t)
+      | SArrayInit(t, e) -> Array(svdecl_typ_to_typ t)
+      | SStruct(s) -> Struct(s)
+    in 
+
+    let default_value_of_typ (t: A.typ) builder = match t with 
+        A.Int | A.Bool | A.Char -> L.const_int (ltype_of_typ t) 0
+      | A.Chan(_) -> L.const_pointer_null void_ptr_t
+      | A.Struct(n) -> 
+        let (member_names, struct_t) = StringMap.find n struct_decls in 
+        let compare_by (n1, _) (n2, _) = compare n1 n2 in
+        let members = List.sort compare_by 
+          (StringMap.bindings member_names) in
+        let idxs = List.rev (generate_seq ((List.length members) - 1)) in
+        let v = List.fold_left2 (fun agg i member -> 
+          let (n, t) = member in
+          (L.build_insertvalue agg (L.const_int (ltype_of_typ t) 0) i n builder))
+        (L.const_null struct_t) idxs members in v
+      | A.Array(t') -> L.const_pointer_null (L.pointer_type (ltype_of_typ t'))
+      | _ -> raise(Failure("default values are arbitrary for structs and arrays!"))
+    in
+
     (* Construct code for an expression; return its value *)
     let rec expr m builder ((_, e) : sexpr) = match e with
         SIntLit i  -> L.const_int i32_t i
@@ -307,6 +338,11 @@ let translate (globals, functions, structs) =
         let name_idx_pairs = List.mapi (fun i n -> (n, i)) sorted_names in
         let idx = snd (List.hd (List.filter (fun (n, _) -> n = mn) name_idx_pairs)) in
         L.build_extractvalue struct_val idx mn builder
+      | SSubscript (n, e) -> 
+        let arr = expr m builder (Int, SId(n)) in
+        let idx = expr m builder e in 
+        L.build_load (L.build_gep arr [| idx |] "" builder) "" builder
+      | _ -> raise(Failure("unknown sx: should've checked in semant!"))
     and 
     construct_func_call f args m builder = 
       let (fdef, fdecl) = StringMap.find f function_decls in
@@ -357,28 +393,27 @@ let translate (globals, functions, structs) =
           stmt_list builder (StringMap.empty::m) dl sl 
 
       | SVdeclStmt vdl -> 
-          let declare_var (builder, mm, dl) (n, t) =   
+          let declare_var (builder, mm, dl) ((n, t) : (string * svdecl_typ)) =   
             let store_default_val = function
-                A.Int | A.Bool | A.Char ->
-                  let local = L.build_alloca (ltype_of_typ (vdecl_typ_to_typ t)) n builder in 
-                  let default_value = L.const_int (ltype_of_typ (vdecl_typ_to_typ t)) 0 in
+                SInt | SBool | SChar | SChan(_) ->
+                  let local = L.build_alloca (ltype_of_typ (svdecl_typ_to_typ t)) n builder in 
+                  let default_value = (default_value_of_typ (svdecl_typ_to_typ t) builder) in
                   L.build_store default_value local builder; local
-              | A.Chan(_) -> 
-                  let local = L.build_alloca (ltype_of_typ (vdecl_typ_to_typ t)) n builder in 
-                  let default_value = L.const_pointer_null void_ptr_t in
-                  L.build_store default_value local builder; local
-              | A.Struct(n)-> 
-                  let local = L.build_malloc (ltype_of_typ (vdecl_typ_to_typ t)) n builder in
-                  let (member_names, struct_t) = StringMap.find n struct_decls in 
-                  let compare_by (n1, _) (n2, _) = compare n1 n2 in
-                  let members = List.sort compare_by 
-                    (StringMap.bindings member_names) in
-                  let idxs = List.rev (generate_seq ((List.length members) - 1)) in
-                  let v = List.fold_left2 (fun agg i member -> 
-                    let (n, t) = member in
-                    (L.build_insertvalue agg (L.const_int (ltype_of_typ t) 0) i n builder))
-                  (L.const_null struct_t) idxs members in
+              | SStruct(_) -> 
+                  let local = L.build_malloc (ltype_of_typ (svdecl_typ_to_typ t)) n builder in
+                  let v = default_value_of_typ (svdecl_typ_to_typ t) builder in
                   L.build_store v local builder; local
+              | SArrayInit(t, e) -> 
+                  let array_t = ltype_of_typ (svdecl_typ_to_typ t) in
+                  let array_len = expr m builder e in
+                  let ptr = L.build_array_malloc array_t array_len "" builder in
+                  let local = L.build_alloca (L.pointer_type array_t) n builder in
+                  L.build_store ptr local builder; local
+                  (* let t_size_64 = L.size_of array_t in
+                  let t_size = L.build_intcast t_size_64 i32_t "size" builder in
+                  let total_size = L.build_mul t_size array_len "tmp" builder in
+                  let void_ptr = L.build_pointercast ptr void_ptr_t "void_ptr_tmp" builder in
+                  L.build_call memset_func [| void_ptr ; L.const_int i32_t 0 ; total_size |] "" builder; ptr *)
               | _ -> raise(Failure("Not implemented")) in
             let local = store_default_val t in
             (* TODO: add to the symbol table?/manage scope? *)
@@ -426,7 +461,7 @@ let translate (globals, functions, structs) =
                 ) ee) sl; (builder, m, dl)
 
           | SDeclAssign (vdl, assl) -> let (_, mm, dl) = stmt m dl builder (SVdeclStmt vdl) in 
-                let new_assl = List.map (fun (s, e) -> ((vdecl_typ_to_typ (snd (List.hd vdl)), SId(s)), e)) assl in
+                let new_assl = List.map (fun (s, e) -> ((svdecl_typ_to_typ (snd (List.hd vdl)), SId(s)), e)) assl in
                 stmt mm dl builder (SAssignStmt(SAssign(new_assl)))
           | SInit dal -> List.fold_left (fun (builder, m, dl) da -> stmt m dl builder(SAssignStmt da)) (builder, m, dl) dal 
           | _         -> raise (Failure "not yet implemented")

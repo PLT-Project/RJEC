@@ -18,6 +18,7 @@ and sx =
   | SSend of string * sexpr
   | SRecv of string * typ
   | SClose of string * typ
+  | SSubscript of string * sexpr
   | SNoexpr
 
 type svdecl_typ = SInt | SBool | SChar
@@ -27,7 +28,7 @@ type svdecl_typ = SInt | SBool | SChar
 
 type sassign_stmt = 
   | SAssign of (sexpr * sexpr) list 
-  | SDeclAssign of ((string * vdecl_typ) list) * ((string * sexpr) list)
+  | SDeclAssign of ((string * svdecl_typ) list) * ((string * sexpr) list)
   | SInit of sassign_stmt list
 
 type sstmt =
@@ -38,7 +39,7 @@ type sstmt =
   | SIf of sexpr * sstmt * sstmt
   | SFor of sstmt * sexpr * sstmt * sstmt
   | SWhile of sexpr * sstmt
-  | SVdeclStmt of (string * vdecl_typ) list
+  | SVdeclStmt of (string * svdecl_typ) list
   | SDefer of sexpr
   | SYeet of sx
   | SSelect of (sx * sstmt) list
