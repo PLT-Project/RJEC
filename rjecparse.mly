@@ -172,8 +172,8 @@ expr:
   | SLIT	           { StrLit($1)             }
   | CLIT	           { CharLit($1)            }
   | BLIT             { BoolLit($1)            }
-  | LSQUARE RSQUARE typ LBRACE args_list RBRACE
-                     { ArrLit($3, List.rev $5)     }
+  | LSQUARE RSQUARE typ LBRACE args_opt RBRACE
+                     { ArrLit($3, $5)     }
   | STRUCT ID LBRACE element_list_opt RBRACE
                      { StructLit($2, $4)      }
   | ID               { Id($1)                 }

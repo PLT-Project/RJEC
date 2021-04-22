@@ -1,0 +1,11 @@
+func baz(x int, y bool) bool {
+    return x;
+}
+
+func baz(z int) {
+    printi(z);
+}
+
+func main(){
+
+}

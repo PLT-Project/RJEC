@@ -72,11 +72,10 @@ let check (globals, (functions, structs)) =
     and make_err er = raise (Failure er)
     and n = fst sd
     in match n with (* No duplicate globals *)
-      | _ when StringMap.mem n global_decls -> make_err ("global variable with same name already declared: " ^ (fst sd))
       | _ when StringMap.mem n smap -> make_err dup_err 
-      | _ -> check_binds "struct member in definition" (snd sd);
-          let members = List.fold_left (fun m (t, n) -> StringMap.add n t m) StringMap.empty (snd sd) in
-          StringMap.add n members smap
+      | _ -> check_binds ("member in definition of struct " ^ (fst sd) ^ " :") (snd sd);
+      let members = List.fold_left (fun m (t, n) -> StringMap.add n t m) StringMap.empty (snd sd) in
+      StringMap.add n members smap
     in
   let struct_decls = List.fold_left add_struct StringMap.empty structs
   in
@@ -104,7 +103,7 @@ let check (globals, (functions, structs)) =
 
   (* Add function name to symbol table *)
   let add_func map fd = 
-    let built_in_err = "function " ^ fd.fname ^ " may not be defined"
+    let built_in_err = "built-in function " ^ fd.fname ^ " is already defined"
     and dup_err = "duplicate function " ^ fd.fname
     and make_err er = raise (Failure er)
     and n = fd.fname (* Name of the function *)
@@ -146,7 +145,7 @@ let check (globals, (functions, structs)) =
       let map = List.hd scope in
       try
         match (StringMap.find v_name map) with
-          _ -> raise (Failure (v_name ^ " already declared"))
+          _ -> raise (Failure ("local variable " ^ v_name ^ " has already been declared"))
       with Not_found ->
         let newMap = StringMap.add v_name v_type map in
         newMap::List.tl scope
@@ -169,13 +168,13 @@ let check (globals, (functions, structs)) =
       try
         StringMap.find v_name (List.hd scope)
       with Not_found -> match List.tl scope with
-          [] -> raise (Failure("semant: undeclared reference " ^ v_name))
+          [] -> raise (Failure("undeclared reference " ^ v_name))
         | tail -> type_of_identifier v_name tail
     in 
 
     let check_chan : typ -> typ = function
         Chan(t) -> t
-      | _ -> raise(Failure("Trying to perform channel operation through a non-channel variable"))
+      | _ -> raise(Failure("tried to perform channel operation through a non-channel variable"))
     in
 
     let rec vdecl_to_svdecl_typ (t: vdecl_typ) (scope: _) : svdecl_typ = match t with
@@ -186,7 +185,7 @@ let check (globals, (functions, structs)) =
       | Struct(s) -> SStruct(s)
       | ArrayInit(e, t) -> 
           let (t', e') = expr scope e in 
-          if t' <> Int then raise(Failure("array size can only be integer expressions!"));
+          if t' <> Int then raise(Failure("array size can only be integer expressions"));
           SArrayInit(vdecl_to_svdecl_typ (typ_to_vdecl_typ t) scope, (t', e'))
     and
     (* Return a semantically-checked expression, i.e., with a type *)
@@ -196,10 +195,9 @@ let check (globals, (functions, structs)) =
       | CharLit l  -> (Char, SCharLit l)
       | BoolLit l  -> (Bool, SBoolLit l)
       | ArrLit(t, el) -> 
-        if List.length el = 0 then raise(Failure("zero-length arrays not supported!"));
         let check_elem e = 
           let (t', e') = expr scope e in
-          if t' <> t then raise(Failure("array element doesn't match declared array type!"));
+          if t' <> t then raise(Failure("array element doesn't match declared array type"));
           (t', e')
         in 
         let selems = List.map check_elem el in

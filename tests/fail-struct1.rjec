@@ -1,0 +1,11 @@
+func main() {
+    var i struct foo;
+    i = struct foo {
+        x : 1,
+        y : true,
+        z : 'a'
+    };
+    printi(i.x);
+    printb(i.y);
+    printc(i.z);
+}

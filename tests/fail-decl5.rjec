@@ -1,0 +1,8 @@
+struct foo {
+    x bool;
+    x int;
+}
+
+func main() {
+
+}

@@ -1,0 +1,6 @@
+var i int;
+var i bool;
+
+func main() {
+    printi(2);
+}

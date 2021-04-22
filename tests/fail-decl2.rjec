@@ -1,0 +1,6 @@
+var i int;
+var i int;
+
+func main() {
+    printi(2);
+}
