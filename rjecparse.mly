@@ -197,7 +197,7 @@ expr:
   | ARROW id_subscript   { Recv($2)           }
   | MAKE LPAREN CHAN basic_typ RPAREN            { Make($4, None)       }
   | MAKE LPAREN CHAN basic_typ COMMA expr RPAREN { Make($4, Some($6))   }
-  | CLOSE LPAREN ID RPAREN { Close($3)        }
+  | CLOSE LPAREN expr RPAREN { Close($3)        }
 
 id_subscript:
     ID { ID($1) }

@@ -24,10 +24,10 @@ type expr =
   | Call of string * expr list
   | Access of expr * string
   | Subscript of string * expr
-  | Send of string * expr
-  | Recv of string
+  | Send of expr * expr
+  | Recv of expr
   | Make of typ * (expr option)
-  | Close of string
+  | Close of expr
   | Noexpr
 
 type vdecl_typ = Int | Bool | Char
