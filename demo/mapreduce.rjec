@@ -8,8 +8,8 @@
 func mapper(in chan int, out_prime chan int, out_composite chan int) {
     num_prime := 0;
     num_composite := 0;
-    for i := <-in; !(i == 0); i = <-in {
-        if is_prime(<- in) {
+    for i := <- in; !(i == 0); i = <- in {
+        if is_prime(i) {
             num_prime = num_prime + 1;
         } else {
             num_composite = num_composite + 1;
@@ -65,7 +65,7 @@ func rand(seed int) int {
     return rand_int;
 }
 
-/* receives three output channels and sends each of them random positive integers */
+/* receives output channels and sends each of them random positive integers */
 func input_reader(out []chan int, num_mappers int, num_ints int, rand_ints []int) {
     for i := 0; i < num_mappers; i = i + 1 {
         yeet input_helper(out[i], num_ints / num_mappers, rand_ints, num_ints / num_mappers * i);
@@ -86,7 +86,7 @@ func shuffler(in_prime []chan int, in_composite []chan int, out []chan int, num_
     var done [num_mappers]chan bool;
     for i := 0; i < num_mappers; i = i + 1 {
         done[i] = make(chan bool);
-        yeet shuffler_helper(in_prime[i], in_composite[i], out, done[i], num_mappers);
+        yeet shuffler_helper(in_prime[i], in_composite[i], out, done[i]);
     }
     for i := 0; i < num_mappers; i = i + 1 {
         <- done[i];
@@ -97,11 +97,9 @@ func shuffler(in_prime []chan int, in_composite []chan int, out []chan int, num_
     close(out[1]);
 }
 
-func shuffler_helper(in_prime chan int, in_composite chan int, out []chan int, done chan bool, num_mappers int) {
-    for i := 0; i < num_mappers; i = i + 1 {
-        out[0] <- (<- in_prime);
-        out[1] <- (<- in_composite);
-    }
+func shuffler_helper(in_prime chan int, in_composite chan int, out []chan int, done chan bool) {
+    out[0] <- (<- in_prime);
+    out[1] <- (<- in_composite);
     done <- true;
 }
 
@@ -114,34 +112,60 @@ func output_writer(in []chan int) {
     printi(<- in[1]);
 }
 
-/* iterative solution to same problem */
-func primes_iterative(num_ints int, rand_ints []int) {
-    counts := count_primes_iterative(num_ints, rand_ints);
-
-    prints("number of primes:");
-    printi(counts[0]);
-    prints("number of composites:");
-    printi(counts[1]);
+/* struct for iterative mapreduce */
+struct count_t {
+    count_prime int;
+    count_composite int;
 }
 
-func count_primes_iterative(num_ints int, rand_ints []int) []int {
-    /* copy into new array, for more accurate performance comparison */
-    var temp [num_ints]int;
-    for i := 0; i < num_ints; i = i + 1 {
-        temp[i] = rand_ints[i];
+/* iterative mapreduce */
+func primes_iterative(num_ints int, num_mappers int, rand_ints []int) {
+    var counts [num_mappers]struct count_t;
+    idx := 0;
+    for i := 0; i < num_mappers; i = i + 1 {
+        var rand_ints_slice [num_ints / num_mappers]int;
+        for j := 0; j < num_ints / num_mappers; j = j + 1 {
+            rand_ints_slice[j] = rand_ints[idx];
+            idx = idx + 1;
+        }
+        counts[i] = count_primes_iterative(num_ints / num_mappers, rand_ints_slice);
     }
 
-    counts := []int{0, 0};
+    count := reduce_counts_iterative(counts, num_mappers);
+    
+    prints("number of primes:");
+    printi(count.count_prime);
+    prints("number of composites:");
+    printi(count.count_composite);
+}
+
+func count_primes_iterative(num_ints int, rand_ints []int) struct count_t {
+    counts := struct count_t {
+        count_prime    : 0,
+        count_composite: 0
+    };
     
     for i := 0; i < num_ints; i = i + 1 {
-        if is_prime(temp[i]) {
-            counts[0] = counts[0] + 1;
+        if is_prime(rand_ints[i]) {
+            counts.count_prime = counts.count_prime + 1;
         } else {
-            counts[1] = counts[1] + 1;
+            counts.count_composite = counts.count_composite + 1;
         }
     }
 
     return counts;
+}
+
+func reduce_counts_iterative(counts []struct count_t, num_mappers int) struct count_t {
+    count := struct count_t{
+        count_prime    : 0,
+        count_composite: 0
+    };
+    for i := 0; i < num_mappers; i = i + 1 {
+        count.count_prime = count.count_prime + counts[i].count_prime;
+        count.count_composite = count.count_composite + counts[i].count_composite;
+    }
+    return count;
 }
 
 /* pregenerate array of num_ints ints */
@@ -156,11 +180,12 @@ func generate_ints(num_ints int) []int {
 func main() {
     num_ints := 1000000;
     rand_ints := generate_ints(num_ints);
+    prints("number of random ints generated:");
+    printi(num_ints);
 
     /* Set up all channels used for passing data between the workers. */
-    start := time();
     size := 10;
-    num_mappers := 20;
+    num_mappers := 10;
     var text [num_mappers]chan int;
     var map_prime [num_mappers]chan int;
     var map_composite [num_mappers]chan int;
@@ -183,6 +208,7 @@ func main() {
     yeet reducer(reduce[0], count[0], quit[0]);
     yeet reducer(reduce[1], count[1], quit[1]);
 
+    start := time();
     /* The output_writer runs in the main thread. */
     output_writer(count);
     prints("time taken for mapreduce (us):");
@@ -190,10 +216,7 @@ func main() {
     printi(time_mapreduce);
 
     new_start := time();
-    primes_iterative(num_ints, rand_ints);
+    primes_iterative(num_ints, num_mappers, rand_ints);
     prints("time taken for iterative (us):");
     printi(time() - new_start);
-
-    prints("time difference (us):");
-    printi(time() - new_start - time_mapreduce);
 }
