@@ -71,7 +71,8 @@ let rec string_of_sexpr (t, e) =
   | SCall(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_sexpr el) ^ ")"
   | SNoexpr -> ""
-				  ) ^ ")"				     
+  | _ -> "general sexpr string"
+				  ) ^ ")"		    
 
 let rec string_of_sstmt = function
     SBlock(stmts) ->
@@ -86,6 +87,7 @@ let rec string_of_sstmt = function
       "for (" ^ string_of_sstmt e1  ^ " ; " ^ string_of_sexpr e2 ^ " ; " ^
       string_of_sstmt e3  ^ ") " ^ string_of_sstmt s
   | SWhile(e, s) -> "while (" ^ string_of_sexpr e ^ ") " ^ string_of_sstmt s
+  | _ -> "general sstmt string"
 
 let string_of_sfdecl fdecl =
   fdecl.sfname ^ "(" ^ String.concat ", " (List.map snd fdecl.sformals) ^
@@ -96,6 +98,6 @@ let string_of_sfdecl fdecl =
 
 let string_of_globals (t, id) = string_of_typ t ^ " " ^ id ^ ";\n"
 
-let string_of_sprogram (vars, funcs, structs) =
+let string_of_sprogram (vars, funcs, _) =
   String.concat "" (List.map string_of_globals vars) ^ "\n" ^
   String.concat "\n" (List.map string_of_sfdecl funcs)

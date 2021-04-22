@@ -17,7 +17,7 @@ let check (globals, (functions, structs)) =
     | Bool -> Bool
     | Char -> Char
     | Chan(t) -> Chan(t)
-    | ArrayInit(e, t) -> Array(t)
+    | ArrayInit(_, t) -> Array(t)
     | Struct(s) -> Struct(s)
   in
 
@@ -26,7 +26,7 @@ let check (globals, (functions, structs)) =
     | Bool -> Bool
     | Char -> Char
     | Chan(t) -> Chan(t)
-    | Array(t) -> raise (Failure("array not implemented"))
+    | Array(_) -> raise (Failure("array not implemented"))
     | Struct(s) -> Struct(s)
   in 
 
@@ -34,6 +34,7 @@ let check (globals, (functions, structs)) =
       Int -> (Int, SIntLit 0)
     | Bool -> (Bool, SBoolLit false)
     | Char -> (Char, SCharLit 0)
+    | _ -> raise(Failure("composite types have to be checked separately for their default values"))
   in
   let flatten_global global = List.map
     (fun name -> (vdecl_typ_to_typ (fst global), name)) (snd global)
@@ -320,7 +321,7 @@ let check (globals, (functions, structs)) =
       let lt = type_of_identifier var scope and (rt, e') = expr scope e in
        let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^ 
       string_of_typ rt (* ^ " in " ^ string_of_stmt (AssignStmt(Assign(var, e))) *)
-      in check_assign lt rt err ; (var, (rt, e'))
+      in ignore(check_assign lt rt err); (var, (rt, e'))
     in 
 
     let check_bool_expr scope e = 
@@ -357,7 +358,7 @@ let check (globals, (functions, structs)) =
           | _             -> raise(Failure("variable declaration misplaced in for loop"))
         ) nscope e3 in 
 
-        let (sstmt4, nscope) = check_stmt nscope st in 
+        let (sstmt4, _) = check_stmt nscope st in 
         (SFor(sstmt, sexpr, sstmt3, sstmt4), scope) 
       | While(e, s) -> 
         let rec forbid_defer = function
@@ -385,7 +386,7 @@ let check (globals, (functions, structs)) =
 	       follows any Return statement.  Nested blocks are flattened. *)
       | Yeet e -> 
           let scall = (function
-              Call(f, args) as call -> 
+              Call(f, _) as call -> 
                 let fdecl = find_func f in
                 if (fdecl.types <> []) && (fdecl.types <> [Int]) 
                   then raise(Failure("a yeet function call can only return int or nothing"));
@@ -399,7 +400,7 @@ let check (globals, (functions, structs)) =
                   let (mt, e') = expr scope v in 
                   (function 
                       SId s -> 
-                        let (n, e') = check_assign_var scope s e in 
+                        let (_, e') = check_assign_var scope s e in 
                         ((fst e', SId(s)), e')
                     | SAccess (n, sn, mn) -> 
                       let (t, e') = expr scope e in 
@@ -448,7 +449,6 @@ let check (globals, (functions, structs)) =
                 in 
               let (dal, nscope) = List.fold_left2 helper ([], scope) vl el 
               in (SInit(List.rev dal), nscope)
-            | _               -> raise (Failure ("not yet implemented"))
 
           in let (sassign, sscope) = check_assign_stmt s in 
           (SAssignStmt(sassign), sscope)
