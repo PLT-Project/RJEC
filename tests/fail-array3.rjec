@@ -1,0 +1,12 @@
+struct foo {
+    x int;
+    y char;
+    z bool;
+}
+
+func main () {
+    var a [10]struct foo;
+    for i := 0; i < 10; i = i + 1 {
+        a[i] = i;
+    }
+}

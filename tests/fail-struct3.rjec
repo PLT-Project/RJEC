@@ -1,0 +1,16 @@
+struct foo {
+    x int;
+    y bool;
+    z char;
+}
+
+func main() {
+    var i struct foo;
+    i = struct foo {
+        x : 1,
+        y : true,
+        z : 'a'
+    };
+    printi(i.v);
+}
+

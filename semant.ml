@@ -168,13 +168,13 @@ let check (globals, (functions, structs)) =
       try
         StringMap.find v_name (List.hd scope)
       with Not_found -> match List.tl scope with
-          [] -> raise (Failure("semant: undeclared reference " ^ v_name))
+          [] -> raise (Failure("undeclared reference " ^ v_name))
         | tail -> type_of_identifier v_name tail
     in 
 
     let check_chan : typ -> typ = function
         Chan(t) -> t
-      | _ -> raise(Failure("Trying to perform channel operation through a non-channel variable"))
+      | _ -> raise(Failure("tried to perform channel operation through a non-channel variable"))
     in
 
     let rec vdecl_to_svdecl_typ (t: vdecl_typ) (scope: _) : svdecl_typ = match t with
@@ -185,7 +185,7 @@ let check (globals, (functions, structs)) =
       | Struct(s) -> SStruct(s)
       | ArrayInit(e, t) -> 
           let (t', e') = expr scope e in 
-          if t' <> Int then raise(Failure("array size can only be integer expressions!"));
+          if t' <> Int then raise(Failure("array size can only be integer expressions"));
           SArrayInit(vdecl_to_svdecl_typ (typ_to_vdecl_typ t) scope, (t', e'))
     and
     (* Return a semantically-checked expression, i.e., with a type *)
@@ -195,10 +195,9 @@ let check (globals, (functions, structs)) =
       | CharLit l  -> (Char, SCharLit l)
       | BoolLit l  -> (Bool, SBoolLit l)
       | ArrLit(t, el) -> 
-        if List.length el = 0 then raise(Failure("zero-length arrays not supported!"));
         let check_elem e = 
           let (t', e') = expr scope e in
-          if t' <> t then raise(Failure("array element doesn't match declared array type!"));
+          if t' <> t then raise(Failure("array element doesn't match declared array type"));
           (t', e')
         in 
         let selems = List.map check_elem el in
