@@ -1,0 +1,146 @@
+/* mapreduce to count randomly generated primes vs composite ints 
+ * compares time length of iterative vs concurrent solutions
+ * based on noun/verb count mapreduce by appliedgo.net */
+
+/* mapper receives a channel of ints and counts the number of prime and
+ * composite ints. It sends the resulting counts to the output channels.
+ */
+func mapper(in chan int, out_prime chan int, out_composite chan int) {
+    num_prime := 0;
+    num_composite := 0;
+    for i := <-in; !(i == 0); i = <-in {
+        if is_prime(<- in) {
+            num_prime = num_prime + 1;
+        } else {
+            num_composite = num_composite + 1;
+        }
+    }
+    out_prime <- num_prime;
+    out_composite <- num_composite;
+    close(out_prime);
+    close(out_composite);
+}
+
+/* checks if positive integer is prime, using pseudocode from Wikipedia */
+func is_prime(n int) bool {
+    if n <= 3 {
+        return 1 < n;
+    }
+    if n % 2 == 0 || n % 3 == 0 {
+        return false;
+    }
+    for i := 5; i * i <= n; i = i + 6 {
+        if n % i == 0 || n % (i + 2) == 0 {
+            return false;
+        }
+    }
+    return true;
+}
+
+/* reducer receives a channel of ints and adds up all ints until it receives the 
+ * quit signal
+ */
+func reducer(in chan int, out chan int, quit chan bool) {
+    sum := 0;
+    for {
+        select {
+        case n := <- in:
+            sum = sum + n;
+        case <- quit:
+            out <- sum;
+            close(out);
+        }
+    }
+}
+
+/* basic linear congruential generator for random positive int */
+func rand(seed int) int {
+    rand_int := (1103515245 * seed + 12345) % 2147483648;
+    if rand_int < 0 {
+        return -1 * rand_int;
+    }
+    if rand_int == 0 {
+        return 1;
+    }
+    return rand_int;
+}
+
+/* receives three output channels and sends each of them random positive integers */
+func input_reader(out []chan int, num_mappers int, num_ints int) {
+    for i := 0; i < num_mappers; i = i + 1 {
+        yeet input_helper(out[i], num_ints);
+    }
+}
+
+func input_helper(ch chan int, num_ints int) {
+    for i := 0; i < num_ints; i = i + 1 {
+        ch <- rand(time());
+    }
+    close(ch);
+}
+
+/* gets two arrays of input channels containing for prime and composite.
+ * the input channels are merged into single outputs for prime and composite.
+ */
+func shuffler(in_prime []chan int, in_composite []chan int, out []chan int, num_mappers int, quit []chan bool) {
+    var done [num_mappers]chan bool;
+    for i := 0; i < num_mappers; i = i + 1 {
+        done[i] = make(chan bool);
+        yeet shuffler_helper(in_prime[i], in_composite[i], out, done[i], num_mappers);
+    }
+    for i := 0; i < num_mappers; i = i + 1 {
+        <- done[i];
+    }
+    quit[0] <- true;
+    quit[1] <- true;
+    close(out[0]);
+    close(out[1]);
+}
+
+func shuffler_helper(in_prime chan int, in_composite chan int, out []chan int, done chan bool, num_mappers int) {
+    for i := 0; i < num_mappers; i = i + 1 {
+        out[0] <- (<- in_prime);
+        out[1] <- (<- in_composite);
+    }
+    done <- true;
+}
+
+/* writes out the counts that it receives from each channel.
+ */
+func output_writer(in []chan int) {
+    prints("number of primes:");
+    printi(<- in[0]);
+    prints("number of composites:");
+    printi(<- in[1]);
+}
+
+func main() {
+    /* Set up all channels used for passing data between the workers. */
+    size := 10;
+    num_mappers := 3;
+    num_ints := 100000;
+    var text [num_mappers]chan int;
+    var map_prime [num_mappers]chan int;
+    var map_composite [num_mappers]chan int;
+    for i := 0; i < num_mappers; i = i + 1 {
+        text[i] = make(chan int, size);
+        map_prime[i] = make(chan int, size);
+        map_composite[i] = make(chan int, size);
+    }
+    reduce := []chan int{make(chan int, size), make(chan int, size)};
+    count := []chan int{make(chan int, size), make(chan int, size)};
+
+    quit := []chan bool{make(chan bool), make(chan bool)};
+
+    /* Start all workers in separate yeetroutines, chained together via channels. */
+    yeet input_reader(text, num_mappers, num_ints);
+    for i := 0; i < num_mappers; i = i + 1 {
+        yeet mapper(text[i], map_prime[i], map_composite[i]);
+    }
+    yeet shuffler(map_prime, map_composite, reduce, num_mappers, quit);
+    yeet reducer(reduce[0], count[0], quit[0]);
+    yeet reducer(reduce[1], count[1], quit[1]);
+
+    /* The output_writer runs in the main thread. */
+    output_writer(count);
+}

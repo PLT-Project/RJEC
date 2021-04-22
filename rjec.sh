@@ -27,7 +27,6 @@ if [ -z "$LD_LIBRARY_PATH" ]
 then
     LD_LIBRARY_PATH=$(pwd)/libmill
     export LD_LIBRARY_PATH
-    echo "export LD_LIBRARY_PATH=$(pwd)/libmill"
 else
     echo "check that LD_LIBRARY_PATH is exported!"
 fi

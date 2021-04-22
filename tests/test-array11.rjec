@@ -1,0 +1,6 @@
+func main() {
+    n := 5;
+    printi(n);
+    var arr [n]int;
+    printi(arr[2]);
+}

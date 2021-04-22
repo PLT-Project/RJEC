@@ -177,16 +177,16 @@ let check (globals, (functions, structs)) =
       | _ -> raise(Failure("Trying to perform channel operation through a non-channel variable"))
     in
 
-    let rec vdecl_to_svdecl_typ (t: vdecl_typ) : svdecl_typ = match t with
+    let rec vdecl_to_svdecl_typ (t: vdecl_typ) (scope: _) : svdecl_typ = match t with
         Int -> SInt
       | Bool -> SBool
       | Char -> SChar
-      | Chan(t) -> SChan(vdecl_to_svdecl_typ (typ_to_vdecl_typ t))
+      | Chan(t) -> SChan(vdecl_to_svdecl_typ (typ_to_vdecl_typ t) scope)
       | Struct(s) -> SStruct(s)
       | ArrayInit(e, t) -> 
           let (t', e') = expr scope e in 
           if t' <> Int then raise(Failure("array size can only be integer expressions!"));
-          SArrayInit(vdecl_to_svdecl_typ (typ_to_vdecl_typ t), (t', e'))
+          SArrayInit(vdecl_to_svdecl_typ (typ_to_vdecl_typ t) scope, (t', e'))
     and
     (* Return a semantically-checked expression, i.e., with a type *)
     expr (scope : typ StringMap.t list) (e : expr) : sexpr = match e with
@@ -416,7 +416,7 @@ let check (globals, (functions, structs)) =
               (SAssign (List.map2 helper vl el), scope)
 
             | DeclAssign(vd, el) -> let (_, nscope) = check_stmt scope (VdeclStmt vd) in 
-                let vdl = List.map (fun n -> (n, vdecl_to_svdecl_typ (fst vd)) ) (snd vd) in
+                let vdl = List.map (fun n -> (n, vdecl_to_svdecl_typ (fst vd) scope) ) (snd vd) in
                 let assl = List.map2 (check_assign_var nscope) (snd vd) el in 
                 (SDeclAssign(vdl, assl), nscope)
             | Init(vl, el) -> 
@@ -432,15 +432,15 @@ let check (globals, (functions, structs)) =
                         (_, SArrLit(elem_t, el)) -> 
                           let arr_len = List.length el in 
                           SArrayInit(
-                            vdecl_to_svdecl_typ (typ_to_vdecl_typ elem_t),
+                            vdecl_to_svdecl_typ (typ_to_vdecl_typ elem_t) scope,
                             (Int, SIntLit(arr_len))
                           )
                       | (_, SStrLit l) -> SArrayInit(SChar, (Int, SIntLit((String.length l) + 1)))
                       | (Array(elem_t), _) -> SArrayInit(
-                          vdecl_to_svdecl_typ (typ_to_vdecl_typ elem_t),
+                          vdecl_to_svdecl_typ (typ_to_vdecl_typ elem_t) scope,
                           (Int, SIntLit(1))
                         )
-                      | _ -> vdecl_to_svdecl_typ (typ_to_vdecl_typ t)
+                      | _ -> vdecl_to_svdecl_typ (typ_to_vdecl_typ t) scope
                     ) (t, e')
                     in
                     (SDeclAssign([(s, lhs_svdecl)], [(s, (t, e'))]) :: ll, 
@@ -455,7 +455,7 @@ let check (globals, (functions, structs)) =
       | VdeclStmt s -> 
           let (t, nl) = s in
           let (nscope, vdecls) = List.fold_left (fun (scope, vdecls) n -> 
-            (add_to_scope (vdecl_typ_to_typ t) n scope, (n, vdecl_to_svdecl_typ t)::vdecls)
+            (add_to_scope (vdecl_typ_to_typ t) n scope, (n, vdecl_to_svdecl_typ t scope)::vdecls)
           ) (scope, []) nl
           in (SVdeclStmt(vdecls), nscope)
       | Defer e -> 

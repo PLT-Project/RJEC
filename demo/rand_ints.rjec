@@ -1,0 +1,19 @@
+/* generates 1,000,000 random integers in an array and prints every 10,000th */
+
+func rand(seed int) int {
+    return (1103515245 * seed + 12345) % 2147483648;
+}
+
+func main() {
+    start := time();
+    var rand_ints [1000000]int;
+    for i := 0; i < 1000000; i = i + 1 {
+        rand_ints[i] = rand(time());
+        if i % 10000 == 0 {
+            printi(rand_ints[i]);
+        }
+    }
+    end := time();
+    prints("time taken (us):");
+    printi(end - start);
+}
