@@ -1,0 +1,14 @@
+struct foo {
+    x bool;
+    y int;
+}
+
+struct foo {
+    x int;
+    y int;
+}
+
+
+func main() {
+    
+}

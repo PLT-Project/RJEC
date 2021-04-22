@@ -1,0 +1,7 @@
+func foo(a int, a bool) bool {
+    return true;
+}
+
+func main() {
+    
+}

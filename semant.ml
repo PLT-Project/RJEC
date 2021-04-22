@@ -71,11 +71,10 @@ let check (globals, (functions, structs)) =
     and make_err er = raise (Failure er)
     and n = fst sd
     in match n with (* No duplicate globals *)
-      | _ when StringMap.mem n global_decls -> make_err ("global variable with same name already declared: " ^ (fst sd))
       | _ when StringMap.mem n smap -> make_err dup_err 
-      | _ -> check_binds "struct member in definition" (snd sd);
-          let members = List.fold_left (fun m (t, n) -> StringMap.add n t m) StringMap.empty (snd sd) in
-          StringMap.add n members smap
+      | _ -> check_binds ("member in definition of struct " ^ (fst sd) ^ " :") (snd sd);
+      let members = List.fold_left (fun m (t, n) -> StringMap.add n t m) StringMap.empty (snd sd) in
+      StringMap.add n members smap
     in
   let struct_decls = List.fold_left add_struct StringMap.empty structs
   in
@@ -103,7 +102,7 @@ let check (globals, (functions, structs)) =
 
   (* Add function name to symbol table *)
   let add_func map fd = 
-    let built_in_err = "function " ^ fd.fname ^ " may not be defined"
+    let built_in_err = "built-in function " ^ fd.fname ^ " is already defined"
     and dup_err = "duplicate function " ^ fd.fname
     and make_err er = raise (Failure er)
     and n = fd.fname (* Name of the function *)
@@ -145,7 +144,7 @@ let check (globals, (functions, structs)) =
       let map = List.hd scope in
       try
         match (StringMap.find v_name map) with
-          _ -> raise (Failure (v_name ^ " already declared"))
+          _ -> raise (Failure ("local variable " ^ v_name ^ " has already been declared"))
       with Not_found ->
         let newMap = StringMap.add v_name v_type map in
         newMap::List.tl scope

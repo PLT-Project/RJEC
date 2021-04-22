@@ -1,0 +1,7 @@
+func printi(x int) {
+    printi(x);
+}
+
+func main() {
+    
+}

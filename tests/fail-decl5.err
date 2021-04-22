@@ -1,0 +1,1 @@
+Fatal error: exception Failure("duplicate member in definition of struct foo : x")
