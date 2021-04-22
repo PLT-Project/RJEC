@@ -1,0 +1,36 @@
+/* implementation of a mutex using channels and demonstration with defer */
+
+func make_mutex() chan bool {
+    mu := make(chan bool, 1);
+    mu <- true;
+    return mu;
+}
+
+func lock(mu chan bool) {
+    <- mu;
+}
+
+func unlock(mu chan bool) {
+    mu <- true;
+}
+
+func foo(n int, mu chan bool) {
+    if 30 < n {
+        return;
+    } else {
+        lock(mu);
+        defer unlock(mu);
+    }
+
+    for i := n; i < n + 10; i = i + 1 {
+        printi(i);
+    }
+}
+
+func main() {
+    mu := make_mutex();
+    yeet foo(0, mu);
+    yeet foo(25, mu);
+    yeet foo(-100, mu);
+    foo(-5, mu);
+}
