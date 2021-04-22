@@ -85,10 +85,10 @@ let translate (globals, functions, structs) =
   let printf_func : L.llvalue = 
       L.declare_function "printf" printf_t the_module in
 
-  let memset_t : L.lltype = 
-    L.function_type void_ptr_t [| void_ptr_t ; i32_t ; i32_t |] in
-  let memset_func : L.llvalue = 
-    L.declare_function "memset" memset_t the_module in
+  let gettime_t : L.lltype = 
+    L.function_type i32_t [| |] in
+  let gettime_func : L.llvalue = 
+    L.declare_function "get_time" gettime_t the_module in
 
   let printbool_t : L.lltype =
       L.function_type i32_t [| i1_t |] in
@@ -319,6 +319,10 @@ let translate (globals, functions, structs) =
       | SCall ("printb", [e]) ->
         L.build_call printbool_func [| (expr m builder e) |]
         "printbool" builder 
+
+      | SCall ("time", _) ->
+          L.build_call gettime_func [| |]
+          "get_time" builder
 
       | SCall (f, args) ->
         let (fdef, local, result) = construct_func_call f args m builder in
@@ -558,6 +562,7 @@ let translate (globals, functions, structs) =
         | "prints" -> (printf_func, [| str_format_str ; (expr m builder (List.hd args)) |], "printf")
         | "printc" -> (printf_func, [| char_format_str ; (expr m builder (List.hd args)) |], "printf")
         | "printi" -> (printf_func, [| int_format_str ; (expr m builder (List.hd args)) |], "printf")
+        | "time" -> (gettime_func, [| |], "get_time")
         | _ -> 
           let (fdef, local, result) = construct_func_call f args m builder in
           (fdef, [| local |], result) in

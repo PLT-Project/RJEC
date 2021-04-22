@@ -1,0 +1,6 @@
+func main()
+{
+    i := time();
+    prints("time elapsed greater than 0:");
+    printb(i < time());
+}

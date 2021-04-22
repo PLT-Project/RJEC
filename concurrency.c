@@ -6,6 +6,7 @@
 #include "libmill/chan.h"
 #include <stdbool.h>
 #include <string.h>
+#include <sys/time.h>
 
 void yeet(int (*start_routine)(void *), void *args)
 {
@@ -123,6 +124,14 @@ int selectchan(struct select_clause *clauses, int nclauses)
     return mill_idx;
 }
 
+int get_time()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_usec;
+}
+
+// test function for select
 int food(chan ch1, chan ch2, chan quit)
 {
     while (1) {
@@ -130,7 +139,8 @@ int food(chan ch1, chan ch2, chan quit)
         char val1 = 'a';
         int val2;
 
-        /*choose {
+        /* libmill syntax:
+        choose {
         out(ch1, char, val1):
             printf("Value %c sent.\n", val1);
         in(ch2, int, val2):
@@ -167,7 +177,8 @@ int food(chan ch1, chan ch2, chan quit)
     return 0;
 }
 
-/*int main()
+/* test driver for select test:
+int main()
 {
     chan ch1 = chmake(char, 0);
     chan ch2 = chmake(int, 0);

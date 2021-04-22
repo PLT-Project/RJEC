@@ -89,10 +89,16 @@ let check (globals, (functions, structs)) =
       fname = name; 
       formals = [(ty, "x")];
       body = [] } map
-    in List.fold_left add_bind StringMap.empty [ ("printi", Int);
+    in
+    let print_decls = List.fold_left add_bind StringMap.empty [ ("printi", Int);
 			                         ("printb", Bool);
 			                         ("printc", Char);
 			                         ("prints", Array(Char)) ]
+    in StringMap.add "time" {
+      types = [Int];
+      fname = "time"; 
+      formals = [];
+      body = [] } print_decls
   in
 
   (* Add function name to symbol table *)
