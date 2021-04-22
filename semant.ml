@@ -166,9 +166,9 @@ let check (globals, (functions, structs)) =
         | tail -> type_of_identifier v_name tail
     in 
 
-    let check_chan n scope = match (type_of_identifier n scope) with
+    let check_chan : typ -> typ = function
         Chan(t) -> t
-      | _ -> raise(Failure("Trying to send through a non-channel variable"))
+      | _ -> raise(Failure("Trying to perform channel operation through a non-channel variable"))
     in
 
     let rec vdecl_to_svdecl_typ (t: vdecl_typ) : svdecl_typ = match t with
@@ -247,16 +247,19 @@ let check (globals, (functions, structs)) =
         let buf = check_buf buf_raw in
         (Chan(t), SMake(t, buf))
       | Send(n, e) -> 
-        let chan_type = check_chan n scope in
+        let (ct, ce) = expr scope n in
+        let chan_type = check_chan ct in
         let (t', e') = expr scope e in
         if t' <> chan_type then raise(Failure("Channel type mismatch with type of element to send"));
-        (t', SSend(n, (t', e')))
+        (t', SSend((ct, ce), (t', e')))
       | Recv n -> 
-        let chan_type = check_chan n scope in
-        (chan_type, SRecv(n, chan_type))
+        let (ct, ce) = expr scope n in
+        let chan_type = check_chan ct in
+        (chan_type, SRecv((ct, ce), chan_type))
       | Close n -> 
-        let chan_type = check_chan n scope in
-        (chan_type, SClose(n, chan_type))
+        let (ct, ce) = expr scope n in
+        let chan_type = check_chan ct in
+        (chan_type, SClose((ct, ce), chan_type))
       | Access(e, mn) -> 
         let e' = expr scope e in
         let extract_struct_name (t : typ) = match t with
@@ -458,11 +461,13 @@ let check (globals, (functions, structs)) =
         let rec check_case_list scope = function
             (case, sl) :: tl ->
               let case_instr = (function
-                  Expr(Send(id, e)) -> SSend(id, expr scope e)
-                | Expr(Recv(id)) | AssignStmt(DeclAssign(_, [Recv(id)]))
-                  | AssignStmt(Assign(_, [Recv(id)]))
-                  | AssignStmt(Init(_, [Recv(id)])) ->
-                    SRecv(id, check_chan id scope)
+                  Expr(Send(c, e)) -> SSend(expr scope c, expr scope e)
+                | Expr(Recv(c)) | AssignStmt(DeclAssign(_, [Recv(c)]))
+                  | AssignStmt(Assign(_, [Recv(c)]))
+                  | AssignStmt(Init(_, [Recv(c)])) ->
+                    let (ct, ce) = expr scope c in
+                    let chan_type = check_chan ct in
+                    SRecv((ct, ce), chan_type)
                 | _ -> raise(Failure("wrong case format in semant"))
               ) case in
               let blockstmt = Block(case :: sl) in

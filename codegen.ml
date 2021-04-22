@@ -328,20 +328,20 @@ let translate (globals, functions, structs) =
         let ll_buf = expr m builder buf in
         L.build_call makechan_func [| t_char ; ll_buf |] "makechan" builder
       | SSend (n, e) -> 
-        let chan = expr m builder (Int, SId(n)) in
+        let chan = expr m builder n in
         let value = expr m builder e in
         L.build_call send_func [| chan ; typ_to_typ_char (fst e) ;
             L.build_intcast value i32_t "tmp" builder |] "" builder
       | SRecv (n, t) ->
-        let chan = expr m builder (Int, SId(n)) in
+        let chan = expr m builder n in
         let recv_by_typ (t : A.typ) = match t with 
-            A.Int -> L.build_call recv_int_func [| chan |] ("recv_int_from_" ^ n) builder
-          | A.Bool -> L.build_call recv_bool_func [| chan |] ("recv_bool_from_" ^ n) builder
-          | A.Char -> L.build_call recv_char_func [| chan |] ("recv_int_from_" ^ n) builder 
+            A.Int -> L.build_call recv_int_func [| chan |] "recv_int" builder
+          | A.Bool -> L.build_call recv_bool_func [| chan |] "recv_bool" builder
+          | A.Char -> L.build_call recv_char_func [| chan |] "recv_int" builder 
           | _ -> raise(Failure("trying to receive non-basic type from channel; should've checked in parser")) in 
         recv_by_typ t
       | SClose (n, t) -> 
-        let chan = expr m builder (Int, SId(n)) in
+        let chan = expr m builder n in
         L.build_call closechan_func [| chan ; typ_to_typ_char t |] "" builder
       | SAccess (sx, sn, mn) -> 
         let struct_val = expr m builder (Struct(sn), sx) in
@@ -575,12 +575,12 @@ let translate (globals, functions, structs) =
             | (SRecv(_), _) -> L.const_int i8_t (Char.code 'r')
             | _ -> raise(Failure("invalid select clause in codegen"))
           ) clause in
-          let chid = (function
-              (SSend(id, _), _) -> id
-            | (SRecv(id, _), _) -> id
+          let chexpr = (function
+              (SSend(c, _), _) -> c
+            | (SRecv(c, _), _) -> c
             | _ -> raise(Failure("invalid select clause in codegen"))
           ) clause in
-          let chan = expr m builder (Int, SId(chid)) in
+          let chan = expr m builder chexpr in
           let chtyp = (function
               (SSend(_, (t, _)), _) -> t
             | (SRecv(_, t), _) -> t
@@ -588,7 +588,7 @@ let translate (globals, functions, structs) =
           ) clause in
           let local = L.build_alloca (ltype_of_typ chtyp) "" builder in
           let value = (function
-              (SSend(id, e), _) -> expr m builder e
+              (SSend(_, e), _) -> expr m builder e
             | (SRecv(_), _) -> L.const_int (ltype_of_typ chtyp) 0
             | _ -> raise(Failure("invalid select clause in codegen"))
           ) clause in

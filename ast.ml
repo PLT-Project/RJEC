@@ -113,11 +113,11 @@ let rec string_of_expr = function
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
   | Access(s, m) -> (string_of_expr s) ^ "." ^ m
   | Subscript(a, i) -> a ^ "[" ^ string_of_expr i ^ "]"
-  | Send(c, e) -> c ^ "<-" ^ string_of_expr e
-  | Recv(c) -> "<-" ^ c
+  | Send(c, e) -> string_of_expr c ^ "<-" ^ string_of_expr e
+  | Recv(c) -> "<-" ^ string_of_expr c
   | Make(t, e) -> "make" ^ "(" ^ "chan " ^ string_of_typ t ^
       (match e with None -> "" | Some(ex) -> "," ^ string_of_expr ex) ^ ")"
-  | Close(c) -> "close" ^ "(" ^ c ^ ")"
+  | Close(c) -> "close" ^ "(" ^ string_of_expr c ^ ")"
   | Noexpr -> ""
 
 let rec string_of_stmt = function

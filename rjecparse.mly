@@ -200,7 +200,7 @@ expr:
   | CLOSE LPAREN expr RPAREN { Close($3)        }
 
 id_subscript:
-    ID { ID($1) }
+    ID { Id($1) }
   | ID LSQUARE expr RSQUARE   { Subscript($1, $3) }
 
 args_opt:

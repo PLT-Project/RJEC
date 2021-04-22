@@ -16,9 +16,9 @@ and sx =
   | SCall of string * sexpr list
   | SAccess of sx * string * string 
   | SMake of typ * sexpr
-  | SSend of string * sexpr
-  | SRecv of string * typ
-  | SClose of string * typ
+  | SSend of sexpr * sexpr
+  | SRecv of sexpr * typ
+  | SClose of sexpr * typ
   | SSubscript of string * sexpr
   | SNoexpr
 
