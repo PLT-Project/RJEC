@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <sys/time.h>
+#include <stdint.h>
 
 void yeet(int (*start_routine)(void *), void *args)
 {
@@ -128,7 +129,7 @@ int get_time()
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return tv.tv_usec;
+    return (((int64_t)tv.tv_sec * 1000000) + tv.tv_usec);
 }
 
 // test function for select
