@@ -149,18 +149,18 @@ else_opt:
   | ELSE LBRACE stmt_list RBRACE               { Block(List.rev $3) }
 
 case_list:
-    CASE case_stmt COLON stmt_list           { [($2, List.rev $4)] }
+    CASE case_stmt COLON stmt_list           { [($2, List.rev $4)]     }
   | case_list CASE case_stmt COLON stmt_list { ($3, List.rev $5) :: $1 }
 
 case_stmt:
-    ID ARROW expr    { Expr (Send ($1, $3))     }
-  | ARROW ID         { Expr (Recv $2)           }
-  | assign_stmt      { AssignStmt $1            }
+    id_subscript ARROW expr    { Expr (Send ($1, $3))     }
+  | ARROW id_subscript         { Expr (Recv $2)           }
+  | assign_stmt                { AssignStmt $1            }
 
 assign_stmt:
-  | vdecl ASSIGN args_list            { DeclAssign($1, List.rev $3)    }
-  | args_list ASSIGN args_list        { Assign(List.rev $1, List.rev $3)         }
-  | args_list INIT   args_list          { Init(List.rev $1, List.rev $3)           }
+  | vdecl ASSIGN args_list            { DeclAssign($1, List.rev $3)      }
+  | args_list ASSIGN args_list        { Assign(List.rev $1, List.rev $3) }
+  | args_list INIT   args_list        { Init(List.rev $1, List.rev $3)   }
 
 
 assign_stmt_opt:
@@ -191,13 +191,17 @@ expr:
   | NOT expr         { Unop(Not, $2)          }
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN { $2                   }
-  | expr DOT ID        { Access($1, $3)         }
+  | expr DOT ID      { Access($1, $3)         }
   | ID LSQUARE expr RSQUARE   { Subscript($1, $3) }
-  | ID ARROW expr    { Send($1, $3)           }
-  | ARROW ID         { Recv($2)           }
-  | MAKE LPAREN CHAN basic_typ RPAREN          { Make($4, None)   }
+  | id_subscript ARROW expr   { Send($1, $3)      }
+  | ARROW id_subscript   { Recv($2)           }
+  | MAKE LPAREN CHAN basic_typ RPAREN            { Make($4, None)       }
   | MAKE LPAREN CHAN basic_typ COMMA expr RPAREN { Make($4, Some($6))   }
-  | CLOSE LPAREN ID RPAREN { Close($3)  }
+  | CLOSE LPAREN ID RPAREN { Close($3)        }
+
+id_subscript:
+    ID { ID($1) }
+  | ID LSQUARE expr RSQUARE   { Subscript($1, $3) }
 
 args_opt:
     /* nothing */ { [] }
