@@ -40,7 +40,6 @@ type vdecl_typ = Int | Bool | Char
 
 type vdecl = vdecl_typ * string list
 
-
 type assign_stmt =
     DeclAssign of vdecl * expr list
   | Assign of expr list * expr list
@@ -60,10 +59,10 @@ type stmt =
   | Yeet of expr
 
 type func_decl = {
-    types : typ list;
-    fname : string;
+    types   : typ list;
+    fname   : string;
     formals : bind list;
-    body : stmt list;
+    body    : stmt list;
   }
 
 type sdecl = string * bind list
@@ -73,63 +72,64 @@ type program = vdecl list * (func_decl list * sdecl list)
 (* Pretty-printing functions *)
 
 let string_of_op = function
-    Add -> "+"
-  | Sub -> "-"
-  | Mult -> "*"
-  | Div -> "/"
-  | Mod -> "%"
+    Add   -> "+"
+  | Sub   -> "-"
+  | Mult  -> "*"
+  | Div   -> "/"
+  | Mod   -> "%"
   | Equal -> "=="
-  | Less -> "<"
-  | Leq -> "<="
-  | And -> "&&"
-  | Or -> "||"
+  | Less  -> "<"
+  | Leq   -> "<="
+  | And   -> "&&"
+  | Or    -> "||"
 
 let string_of_uop = function
-    Neg -> "-"
-  | Not -> "!"
+    Neg   -> "-"
+  | Not   -> "!"
 
 let rec string_of_typ = function
-    Array(t) -> "[]" ^ string_of_typ t
-  | Int -> "int"
-  | Bool -> "bool"
-  | Char -> "char"
+    Array(t)  -> "[]" ^ string_of_typ t
+  | Int       -> "int"
+  | Bool      -> "bool"
+  | Char      -> "char"
   | Struct(t) -> t
-  | Chan(t) -> "chan " ^ string_of_typ t 
+  | Chan(t)   -> "chan " ^ string_of_typ t 
 
 let rec string_of_expr = function
-    IntLit(l) -> string_of_int l
-  | StrLit(l) -> l
-  | CharLit(l) -> String.make 1 (Char.chr l)
-  | BoolLit(true) -> "true"
-  | BoolLit(false) -> "false"
-  | ArrLit(t, el) -> "[]" ^ string_of_typ t
+    IntLit(l)         -> string_of_int l
+  | StrLit(l)         -> l
+  | CharLit(l)        -> String.make 1 (Char.chr l)
+  | BoolLit(true)     -> "true"
+  | BoolLit(false)    -> "false"
+  | ArrLit(t, el)     -> "[]" ^ string_of_typ t
       ^ "{" ^ String.concat ", " (List.map string_of_expr el) ^ "}"
   | StructLit(n, m) -> "struct " ^ n ^ "{" ^ String.concat ", "
       (List.map (fun (n, v) -> (n ^ ": " ^ string_of_expr (v))) m) ^ "}"
-  | Id(s) -> s
-  | Binop(e1, o, e2) ->
+  | Id(s)             -> s
+  | Binop(e1, o, e2)  ->
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
   | Unop(o, e) -> string_of_uop o ^ string_of_expr e
-  | Call(f, el) ->
+  | Call(f, el)       ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
-  | Access(s, m) -> (string_of_expr s) ^ "." ^ m
-  | Subscript(a, i) -> a ^ "[" ^ string_of_expr i ^ "]"
-  | Send(c, e) -> string_of_expr c ^ "<-" ^ string_of_expr e
-  | Recv(c) -> "<-" ^ string_of_expr c
-  | Make(t, e) -> "make" ^ "(" ^ "chan " ^ string_of_typ t ^
+  | Access(s, m)      -> (string_of_expr s) ^ "." ^ m
+  | Subscript(a, i)   -> a ^ "[" ^ string_of_expr i ^ "]"
+  | Send(c, e)        -> string_of_expr c ^ "<-" ^ string_of_expr e
+  | Recv(c)           -> "<-" ^ string_of_expr c
+  | Make(t, e)        -> "make" ^ "(" ^ "chan " ^ string_of_typ t ^
       (match e with None -> "" | Some(ex) -> "," ^ string_of_expr ex) ^ ")"
-  | Close(c) -> "close" ^ "(" ^ string_of_expr c ^ ")"
-  | Noexpr -> ""
+  | Close(c)          -> "close" ^ "(" ^ string_of_expr c ^ ")"
+  | Noexpr            -> ""
 
 let rec string_of_stmt = function
-    Block(stmts) ->
+    Block(stmts)      ->
       "{\n" ^ String.concat "" (List.map string_of_stmt stmts) ^ "}\n"
-  | Expr(expr) -> string_of_expr expr ^ ";\n";
-  | AssignStmt(s) -> let string_of_assign = function  
-       Assign(v, e) -> (String.concat ", " (List.map string_of_expr v)) ^ " = " ^ (String.concat ", " (List.map string_of_expr e)) ^ ";\n"
-      | _           ->  "??????\n"
+  | Expr(expr)        -> string_of_expr expr ^ ";\n";
+  | AssignStmt(s)     -> let string_of_assign = function  
+      Assign(v, e)    -> (String.concat ", " (List.map string_of_expr v)) 
+          ^ " = " ^ (String.concat ", " (List.map string_of_expr e)) ^ ";\n"
+    | _               ->  "??????\n"
     in string_of_assign s
-  | Return(expr) -> "return " ^
+  | Return(expr)      -> "return " ^
       String.concat ", " (List.map string_of_expr expr) ^ ";\n"
   | If(e, s, Block([])) -> "if (" ^ string_of_expr e ^ ")\n" ^ string_of_stmt s
   | If(e, s1, s2) ->  "if (" ^ string_of_expr e ^ ")\n" ^
@@ -137,12 +137,12 @@ let rec string_of_stmt = function
   | _ -> "??????\n" (* unimplemented pretty-print *)
 
 let string_of_vdecl_typ = function
-  ArrayInit(i, t) -> "[" ^ string_of_expr i ^ "]" ^ string_of_typ t
-| Int -> "int"
-| Bool -> "bool"
-| Char -> "char"
-| Struct(t) -> t
-| Chan(t) -> "chan " ^ string_of_typ t 
+    ArrayInit(i, t) -> "[" ^ string_of_expr i ^ "]" ^ string_of_typ t
+  | Int             -> "int"
+  | Bool            -> "bool"
+  | Char            -> "char"
+  | Struct(t)       -> t
+  | Chan(t)         -> "chan " ^ string_of_typ t 
 
 let string_of_vdecl (vd : vdecl) : string = "var " ^ String.concat ", " (snd vd)
     ^ string_of_vdecl_typ (fst vd) ^ " " ^ ";\n"
