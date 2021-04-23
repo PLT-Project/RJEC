@@ -1,5 +1,4 @@
-# RJEC
-Really Just Elementary Concurrency
+# RJEC: Really Just Elementary Concurrency
 
 By Riya Chakraborty, Justin Chen, Yuanyuting (Elaine) Wang, Caroline Hoang  
 COMS 4115 Programming Languages & Translators  
