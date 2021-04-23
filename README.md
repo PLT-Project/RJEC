@@ -1,7 +1,7 @@
 # RJEC
 Really Just Elementary Concurrency
 
-By Riya Chakraborty, Justin Chen, Yuanyuting Wang, Caroline Hoang  
+By Riya Chakraborty, Justin Chen, Yuanyuting (Elaine) Wang, Caroline Hoang  
 COMS 4115 Programming Languages & Translators  
 Columbia University
 
