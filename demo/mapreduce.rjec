@@ -1,4 +1,5 @@
-/* mapreduce to count randomly generated primes vs composite ints 
+/* by Justin Chen
+ * mapreduce to count randomly generated primes vs composite ints 
  * compares time length of iterative vs concurrent solutions
  * based on noun/verb count mapreduce by appliedgo.net */
 

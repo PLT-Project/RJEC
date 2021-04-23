@@ -1,4 +1,7 @@
-/* Ocamlyacc parser for RJEC */
+/* Ocamlyacc parser for RJEC
+ * Initially based on MicroC, with inspiration from Shoo
+ * Written by Justin Chen, Elaine Wang, Riya Chakraborty, and Caroline
+ */
 
 %{
 open Ast
@@ -9,7 +12,7 @@ open Ast
 %token NOT EQ LT LEQ AND OR
 %token RETURN IF ELSE FOR WHILE INT BOOL CHAR CHAN STRUCT
 %token VAR FUNC YEET MAKE CLOSE
-%token ARROW BREAK CONTINUE DEFER SELECT CASE
+%token ARROW DEFER SELECT CASE
 %token <int> ILIT CLIT
 %token <bool> BLIT
 %token <string> SLIT ID
@@ -108,12 +111,6 @@ id_list:
 sdecl:
     STRUCT ID LBRACE member_list RBRACE { ($2, $4) }
 
-/*struct_typ:
-    INT            { Int   }
-  | BOOL           { Bool  }
-  | CHAR           { Char  }
-  | CHAN basic_typ { Chan  }*/
-
 member_list:
     ID basic_typ SEMI             { [($2,$1)]     }
   | member_list ID basic_typ SEMI { ($3,$2) :: $1 }
@@ -139,8 +136,6 @@ stmt:
   | SELECT LBRACE case_list RBRACE          { Select(List.rev $3)   }
   | DEFER expr SEMI                         { Defer($2)             }
   | YEET expr SEMI                          { Yeet($2)              }
-  | BREAK SEMI                              { Break                 }
-  | CONTINUE SEMI                           { Continue              }
 
 else_opt:
     %prec NOELSE                                        { Block([]) }
@@ -172,7 +167,7 @@ expr:
   | SLIT	           { StrLit($1)             }
   | CLIT	           { CharLit($1)            }
   | BLIT             { BoolLit($1)            }
-  | LSQUARE RSQUARE typ LBRACE args_opt RBRACE
+  | LSQUARE RSQUARE non_arr_typ LBRACE args_opt RBRACE
                      { ArrLit($3, $5)     }
   | STRUCT ID LBRACE element_list_opt RBRACE
                      { StructLit($2, $4)      }

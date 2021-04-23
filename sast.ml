@@ -1,4 +1,7 @@
-(* Semantically-checked Abstract Syntax Tree and functions for printing it *)
+(* Semantically-checked Abstract Syntax Tree and functions for printing it
+ * Initially based on MicroC, with inspiration from Shoo
+ * Written by Elaine Wang, Justin Chen, Riya Chakraborty, and Caroline Hoang
+ *)
 
 open Ast
 

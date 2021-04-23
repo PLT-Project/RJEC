@@ -4,3 +4,4 @@ RJEC.code-workspace
 *.a
 testall.log
 rjec.native
+perf/

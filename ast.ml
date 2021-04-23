@@ -1,4 +1,7 @@
-(* Abstract Syntax Tree and functions for printing it *)
+(* Abstract Syntax Tree and functions for printing it 
+ * Initially based on MicroC, with inspiration from Shoo
+ * Written by Justin Chen, Elaine Wang, Riya Chakraborty, and Caroline Hoang
+ *)
 
 type op = Add | Sub | Mult | Div | Mod | Equal | Less | Leq | And | Or
 
@@ -55,8 +58,6 @@ type stmt =
   | Select of (stmt * stmt list) list
   | Defer of expr
   | Yeet of expr
-  | Break
-  | Continue
 
 type func_decl = {
     types : typ list;
@@ -136,8 +137,6 @@ let rec string_of_stmt = function
   (*| For(e1, e2, e3, s) ->
       "for (" ^ string_of_expr e1  ^ " ; " ^ string_of_expr e2 ^ " ; " ^
       string_of_expr e3  ^ ") " ^ string_of_stmt s*)
-  | Break -> "break;\n"
-  | Continue -> "continue;\n"
   | _ -> "??????\n" (* TODO: implement *)
 
 let string_of_vdecl_typ = function

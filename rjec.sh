@@ -1,6 +1,7 @@
 #!/bin/sh
 
-# adapted from testall.sh
+# adapted from testall.sh, which is based on MicroC
+# Written by Justin Chen
 
 # Path to the LLVM interpreter
 LLI="lli"

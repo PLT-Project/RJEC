@@ -1,5 +1,7 @@
 /*
  *  RJEC concurrency functions
+ *  Written by Justin Chen and Elaine Wang
+ *  in collaboration with Riya and Caroline
  */
 
 #include "libmill/libmill.h"

@@ -1,4 +1,5 @@
 /* implementation of a mutex using channels and demonstration with defer */
+/* written by Justin Chen */
 
 func make_mutex() chan bool {
     mu := make(chan bool, 1);

@@ -1,4 +1,5 @@
 /* simple producer-consumer problem */
+/* written by Justin Chen */
 
 func foo(ch1 chan char, ch2 chan int, quit chan bool) {
     for {

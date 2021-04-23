@@ -1,4 +1,5 @@
 /* generates 1,000,000 random integers in an array and prints every 10,000th */
+/* written by Justin Chen */
 
 func rand(seed int) int {
     return (1103515245 * seed + 12345) % 2147483648;

@@ -1,4 +1,7 @@
-(* Semantic checking for the RJEC compiler *)
+(* Semantic checking for the RJEC compiler 
+ * Initially based on MicroC, with inspiration from Shoo
+ * Written by Elaine Wang, Justin Chen, Riya Chakraborty, and Caroline Hoang
+ *)
 
 open Ast
 open Sast
@@ -494,7 +497,6 @@ let check (globals, (functions, structs)) =
             | []              -> ([], scope)
           in let (bret, _) = check_stmt_list bscope sl
           in (SBlock(bret), scope)
-      | _ -> raise (Failure ("not yet implemented"))
 
     in (* body of check_function *)
     { stypes = func.types;

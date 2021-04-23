@@ -1,4 +1,7 @@
-(* Ocamllex scanner for MicroC *)
+(* Ocamllex scanner for RJEC
+ * Initially based on MicroC, with inspiration from Shoo
+ * Written largely by Justin Chen in collaboration with Riya, Elaine, Caroline
+ *)
 
 { open Rjecparse }
 
@@ -35,8 +38,6 @@ rule token = parse
 | "if"     { IF }
 | "else"   { ELSE }
 | "for"    { FOR }
-| "break"  { BREAK }
-| "continue" { CONTINUE }
 | "defer"  { DEFER }
 | "select" { SELECT }
 | "case"   { CASE }

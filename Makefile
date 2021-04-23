@@ -1,3 +1,7 @@
+# Makefile for building RJEC compiler
+# Initially based on MicroC
+# Written by Justin Chen, Elaine Wang, Riya Chakraborty, and Caroline Hoang
+
 LDFLAGS = -L libmill/
 LDLIBS = -lmill
 

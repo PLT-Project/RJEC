@@ -1,5 +1,7 @@
 /*
  *  RJEC printbool function
+ *  Written by Riya Chakraborty
+ *  in collaboration with Elaine, Caroline, and Justin
  */
 
 #include <stdio.h>

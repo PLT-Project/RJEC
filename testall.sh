@@ -1,6 +1,8 @@
 #!/bin/sh
 
 # Regression testing script for RJEC
+# Initially based on MicroC
+# Written by Justin Chen, Elaine Wang, Riya Chakraborty, and Caroline Hoang
 # Step through a list of files
 #  Compile, run, and check the output of each expected-to-work test
 #  Compile and check the error of each expected-to-fail test
