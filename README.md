@@ -23,4 +23,4 @@ To build, run `make all`.
 Tests can be run by running `make`, which will run `./testall.sh`.
 
 ## Compiling RJEC programs
-You can compile a run a RJEC program using `./rjec.sh`. For intermediate compilation steps, please reference this file.
+You can compile a run a RJEC program using `./rjec.sh <filename>`. For intermediate compilation steps, please reference this file.
