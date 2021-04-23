@@ -1,7 +1,16 @@
 (* Code generation: translate takes a semantically checked AST and
- * Initially based on MicroC, with inspiration from Shoo
- * Written by Elaine Wang, Justin Chen, Riya Chakraborty, and Caroline Hoang
- *)
+produces LLVM IR
+
+LLVM tutorial: Make sure to read the OCaml version of the tutorial
+
+http://llvm.org/docs/tutorial/index.html
+
+Detailed documentation on the OCaml LLVM library:
+
+http://llvm.moe/
+http://llvm.moe/ocaml/
+
+*)
 
 module L = Llvm
 module A = Ast
@@ -33,8 +42,8 @@ let translate (globals, functions, structs) =
       let ltype_of_basic_typ ((t, _) : (A.typ * string)) : L.lltype = match t with
           A.Int   -> i32_t
         | A.Bool  -> i1_t
-        | A.Char ->  i8_t
-        | _ -> raise(Failure("Struct member typ not basic -- should've been checked in parser!\n"))
+        | A.Char  ->  i8_t
+        | _       -> raise(Failure("Struct member typ not basic -- should've been checked in parser!\n"))
       in
       let compare_by (_, n1) (_, n2) = compare n1 n2 in
       let member_typs = Array.of_list (List.map ltype_of_basic_typ (List.sort compare_by ml)) in
@@ -46,19 +55,19 @@ let translate (globals, functions, structs) =
 
   (* Return the LLVM type for a RJEC type *)
   let rec ltype_of_typ : A.typ -> L.lltype = function
-      A.Int   -> i32_t
-    | A.Bool  -> i1_t
-    | A.Char ->  i8_t
+      A.Int       -> i32_t
+    | A.Bool      -> i1_t
+    | A.Char      ->  i8_t
     | A.Struct(n) -> snd (StringMap.find n struct_decls)
-    | A.Chan(_) -> void_ptr_t
-    | A.Array(t) -> L.pointer_type (ltype_of_typ t)
+    | A.Chan(_)   -> void_ptr_t
+    | A.Array(t)  -> L.pointer_type (ltype_of_typ t)
   in
 
   let typ_to_typ_char (t : A.typ) = match t with
-      A.Int -> L.const_int i8_t (Char.code 'i')
-    | A.Bool -> L.const_int i8_t (Char.code 'b')
-    | A.Char -> L.const_int i8_t (Char.code 'c')
-    | _ -> raise(Failure("non-basic type for chan; should've checked in parser"))
+      A.Int   -> L.const_int i8_t (Char.code 'i')
+    | A.Bool  -> L.const_int i8_t (Char.code 'b')
+    | A.Char  -> L.const_int i8_t (Char.code 'c')
+    | _       -> raise(Failure("non-basic type for chan; should've checked in parser"))
   in
 
   (* Create a map of global variables after creating each *)
@@ -66,6 +75,7 @@ let translate (globals, functions, structs) =
     let global_var m (t, n) = 
       let init = match t with
           _ -> L.const_int (ltype_of_typ t) 0
+          (* TODO: add other cases *)
       in StringMap.add n (L.define_global n init the_module) m in
     List.fold_left global_var StringMap.empty globals in
 
@@ -140,9 +150,9 @@ let translate (globals, functions, structs) =
       let name = fdecl.sfname in
     (* TODO: actually handle the multiple return types. *)
       let rt_type = match fdecl.stypes with
-          [] -> i32_t
+          []      -> i32_t
         | t :: [] -> ltype_of_typ t 
-        | _ -> raise(Failure("Multiple return types not implemented yet")) in
+        | _       -> raise(Failure("Multiple return types not implemented yet")) in
       let ftype = L.function_type rt_type [| void_ptr_t |] in
       StringMap.add name (L.define_function name ftype the_module, fdecl) m in
     List.fold_left function_decl StringMap.empty functions in
@@ -155,6 +165,7 @@ let translate (globals, functions, structs) =
     let int_format_str = L.build_global_stringptr "%d\n" "fmt" builder
     and char_format_str = L.build_global_stringptr "%c\n" "fmt" builder
     and str_format_str = L.build_global_stringptr "%s\n" "fmt" builder in
+    (* TODO: reevaluate string formatting *)
 
     (* Construct the function's "locals": formal arguments and locally
        declared variables.  Allocate each on the stack, initialize their
@@ -179,8 +190,8 @@ let translate (globals, functions, structs) =
         L.set_value_name n p;
         let local = 
           let create_local (t: A.typ) = match t with
-              A.Struct(_) as t -> L.build_malloc (ltype_of_typ t) n builder
-            | _ -> L.build_alloca (ltype_of_typ t) n builder in
+              A.Struct(_) as t  -> L.build_malloc (ltype_of_typ t) n builder
+            | _                 -> L.build_alloca (ltype_of_typ t) n builder in
           create_local t in
         ignore (L.build_store p local builder);
         StringMap.add n local m
@@ -199,26 +210,26 @@ let translate (globals, functions, structs) =
 
     (* Return the value for a variable or formal argument.
        Check local names first, then global names *)
-    let rec lookup n ml = try StringMap.find n (List.hd ml)
-                   with Not_found -> match List.tl ml with
-                      [] -> raise (Failure("codegen lookup: undeclared reference " ^ n))
-                    | tail -> lookup n tail
+    let rec lookup n ml = try StringMap.find n (List.hd ml) with 
+      Not_found -> match List.tl ml with
+          [] -> raise (Failure("codegen lookup: undeclared reference " ^ n))
+        | tail -> lookup n tail
     in
 
     let defered_el = [] in 
 
     let rec svdecl_typ_to_typ : svdecl_typ -> A.typ = function
-        SInt -> A.Int
-      | SBool -> A.Bool
-      | SChar -> A.Char
-      | SChan(t) -> A.Chan(svdecl_typ_to_typ t)
-      | SArrayInit(t, _) -> A.Array(svdecl_typ_to_typ t)
-      | SStruct(s) -> A.Struct(s)
+        SInt              -> A.Int
+      | SBool             -> A.Bool
+      | SChar             -> A.Char
+      | SChan(t)          -> A.Chan(svdecl_typ_to_typ t)
+      | SArrayInit(t, _)  -> A.Array(svdecl_typ_to_typ t)
+      | SStruct(s)        -> A.Struct(s)
     in 
 
     let default_value_of_typ (t: A.typ) builder = match t with 
         A.Int | A.Bool | A.Char -> L.const_int (ltype_of_typ t) 0
-      | A.Chan(_) -> L.const_pointer_null void_ptr_t
+      | A.Chan(_)   -> L.const_pointer_null void_ptr_t
       | A.Struct(n) -> 
         let (member_names, struct_t) = StringMap.find n struct_decls in 
         let compare_by (n1, _) (n2, _) = compare n1 n2 in
@@ -234,7 +245,7 @@ let translate (globals, functions, structs) =
 
     (* Construct code for an expression; return its value *)
     let rec expr m builder ((_, e) : sexpr) = match e with
-        SIntLit i  -> L.const_int i32_t i
+        SIntLit i   -> L.const_int i32_t i
       | SStrLit s   -> L.build_global_stringptr s "strlit" builder
       | SCharLit c  -> L.const_int i8_t c
       | SBoolLit b  -> L.const_int i1_t (if b then 1 else 0)
@@ -259,8 +270,8 @@ let translate (globals, functions, structs) =
           let elem_ptr = L.build_pointercast arr_ptr (L.pointer_type arr_t) "" builder in
           ignore(L.build_store elem elem_ptr builder)
         ) idxs elems; arr
-      | SNoexpr     -> L.const_int i32_t 0
-      | SId s       -> L.build_load (lookup s m) s builder
+      | SNoexpr -> L.const_int i32_t 0
+      | SId s   -> L.build_load (lookup s m) s builder
       | SBinop (e1, op, e2) ->
         let e1' = expr m builder e1
         and e2' = expr m builder e2 in
@@ -279,10 +290,10 @@ let translate (globals, functions, structs) =
       | SUnop (op, ((_, _) as e)) ->
         let e' = expr m builder e in
         (match op with
-          A.Neg                  -> L.build_neg
-        | A.Not                  -> L.build_not) e' "tmp" builder
+          A.Neg                   -> L.build_neg
+        | A.Not                   -> L.build_not) e' "tmp" builder
 
-      | SCall ("printi", [e])  ->
+      | SCall ("printi", [e]) ->
         L.build_call printf_func [| int_format_str ; (expr m builder e) |]
           "printf" builder
 
@@ -317,7 +328,7 @@ let translate (globals, functions, structs) =
       | SRecv (n, t) ->
         let chan = expr m builder n in
         let recv_by_typ (t : A.typ) = match t with 
-            A.Int -> L.build_call recv_int_func [| chan |] "recv_int" builder
+            A.Int  -> L.build_call recv_int_func [| chan |] "recv_int" builder
           | A.Bool -> L.build_call recv_bool_func [| chan |] "recv_bool" builder
           | A.Char -> L.build_call recv_char_func [| chan |] "recv_int" builder 
           | _ -> raise(Failure("trying to receive non-basic type from channel; should've checked in parser")) in 
@@ -362,16 +373,16 @@ let translate (globals, functions, structs) =
       ) (List.rev args)) in
 
       let local = L.build_malloc args_t (f ^ "_args") builder in
-      let idxs = List.rev (generate_seq ((List.length fdecl.sformals) - 1)) in
-      let args = List.fold_left2 (fun agg i llarg -> 
+      let idxs  = List.rev (generate_seq ((List.length fdecl.sformals) - 1)) in
+      let args  = List.fold_left2 (fun agg i llarg -> 
         (L.build_insertvalue agg llarg i ("arg_" ^ string_of_int i) builder))
       (L.const_null args_t) idxs llargs in
       ignore(L.build_store args local builder);
       (* TODO: fix multiple return types later *)
       let result = (match fdecl.stypes with 
-                            [] -> ""
-                          | _ :: [] -> f ^ "_result"
-                          | _ -> raise(Failure("Multiple return types not implemented yet"))) in
+          [] -> ""
+        | _ :: [] -> f ^ "_result"
+        | _ -> raise(Failure("Multiple return types not implemented yet"))) in
 
       let void_ptr_arg = L.build_bitcast local void_ptr_t (f ^ "_arg_pointer") builder in
       (fdef, void_ptr_arg, result)
@@ -383,8 +394,8 @@ let translate (globals, functions, structs) =
        e.g., to handle the "fall off the end of the function" case. *)
     let add_terminal builder instr =
       match L.block_terminator (L.insertion_block builder) with
-	      Some _ -> ()
-      | None -> ignore (instr builder) in
+	      Some _  -> ()
+      | None    -> ignore (instr builder) in
 
     (* Build the code for the given statement; return the builder for
        the statement's successor (i.e., the next instruction will be built
@@ -417,76 +428,78 @@ let translate (globals, functions, structs) =
                   let local = L.build_alloca (L.pointer_type array_t) n builder in
                   ignore(L.build_store ptr local builder); local in
             let local = store_default_val t in
+            (* TODO: add to the symbol table?/manage scope? *)
             let new_m = StringMap.add n local (List.hd mm)
             in (builder, new_m::(List.tl mm), dl) 
           in List.fold_left declare_var (builder, m, dl) vdl
-      | SExpr e -> ignore(expr m builder e); (builder, m, dl) 
+      | SExpr e   -> ignore(expr m builder e); (builder, m, dl) 
       | SReturn e -> (* TODO: fix multiple return types later *)
-                    ignore(List.map (fun (fdef, llargs, result) -> 
-                      L.build_call fdef llargs result builder) dl);
-                    ignore(match fdecl.stypes with
-                          (* Special "return nothing" instr *)
-                          [] -> L.build_ret (L.const_int i32_t 0) builder 
-                          (* Build return statement *)
-                        | _ :: [] -> L.build_ret (expr m builder (List.hd e)) builder
-                        | _ -> raise(Failure("Multiple return types not implemented yet")));
-                     (builder, m, [])
+        ignore(List.map (fun (fdef, llargs, result) -> 
+          L.build_call fdef llargs result builder) dl);
+        ignore(match fdecl.stypes with
+            (* Special "return nothing" instr *)
+            [] -> L.build_ret (L.const_int i32_t 0) builder 
+            (* Build return statement *)
+          | _ :: [] -> L.build_ret (expr m builder (List.hd e)) builder
+          | _ -> raise(Failure("Multiple return types not implemented yet")));
+        (builder, m, [])
       | SYeet(SCall(f, args)) -> 
         let (fdef, local, _) = construct_func_call f args m builder in
+        (* let local_void_ptr = L.build_bitcast local void_ptr_t (f ^ "_arg_ptr") builder in *)
         ignore(L.build_call yeet_func [| fdef ; local |] "" builder); (builder, m, dl)
-      | SAssignStmt s -> let assign_stmt builder = function
-            SAssign sl -> 
-              let extract_value e = match e with 
-                  (_, SStructLit(_, _)) -> let ptr = expr m builder e in 
-                                            L.build_load ptr "tmp" builder
-                | (_, SStrLit l) -> 
-                  let arr_len = (String.length l) + 1 in
-                  let arr_t = (ltype_of_typ A.Char) in
-                  let arr = L.build_array_malloc arr_t (L.const_int i32_t arr_len) "arrlit" builder in
-                  let idxs = List.rev (generate_seq (arr_len - 1)) in
+      | SAssignStmt s   -> let assign_stmt builder = function
+          SAssign sl  -> 
+            let extract_value e = match e with 
+                (_, SStructLit(_, _)) -> let ptr = expr m builder e in 
+                                          L.build_load ptr "tmp" builder
+              | (_, SStrLit l) -> 
+                let arr_len = (String.length l) + 1 in
+                let arr_t = (ltype_of_typ A.Char) in
+                let arr = L.build_array_malloc arr_t (L.const_int i32_t arr_len) "arrlit" builder in
+                let idxs = List.rev (generate_seq (arr_len - 1)) in
 
-                  List.iter (fun i -> 
-                    let c = (if i = (String.length l) then 0 else Char.code (String.get l i)) in
-                    let elem = L.const_int i8_t c in
-                    let arr_ptr = L.build_gep arr [| (L.const_int i32_t i) |] "" builder in
-                    let elem_ptr = L.build_pointercast arr_ptr (L.pointer_type arr_t) "" builder in
-                    ignore(L.build_store elem elem_ptr builder)
-                  ) idxs; arr
-                | _ -> expr m builder e
-              in
-              let eval_assign_lhs ee e = match ee with 
-                  (_, SId(s)) -> 
-                    let value = extract_value e in
-                    ignore(L.build_store value (lookup s m) builder); builder
-                | (_, SSubscript(an, index)) -> 
-                  
+                List.iter (fun i -> 
+                  let c = (if i = (String.length l) then 0 else Char.code (String.get l i)) in
+                  let elem = L.const_int i8_t c in
+                  let arr_ptr = L.build_gep arr [| (L.const_int i32_t i) |] "" builder in
+                  let elem_ptr = L.build_pointercast arr_ptr (L.pointer_type arr_t) "" builder in
+                  ignore(L.build_store elem elem_ptr builder)
+                ) idxs; arr
+              | _ -> expr m builder e
+            in
+            let eval_assign_lhs ee e = match ee with 
+                (_, SId(s)) -> 
                   let value = extract_value e in
-                  let arr = L.build_load (lookup an m) "tmp" builder in
-                  let idx = expr m builder index in 
-                  let ptr = L.build_gep arr [| idx |] "" builder in 
-                  ignore(L.build_store value ptr builder); builder
-                | (_, SAccess(sx, sn, mn)) -> 
-                  let struct_val = expr m builder (A.Struct(sn), sx) in
-                  let (member_names, _) = StringMap.find sn struct_decls in
-                  let compare_by (n1, _) (n2, _) = compare n1 n2 in
-                  let sorted_names = List.map (fun (n, _) -> n) (List.sort compare_by (StringMap.bindings member_names)) in
-                  let name_idx_pairs = List.mapi (fun i n -> (n, i)) sorted_names in
-                  let idx = snd (List.hd (List.filter (fun (n, _) -> n = mn) name_idx_pairs)) in
-                  let e' = expr m builder e in
-                  let v = L.build_insertvalue struct_val e' idx mn builder in 
+                  ignore(L.build_store value (lookup s m) builder); builder
+              | (_, SSubscript(an, index)) -> 
+                
+                let value = extract_value e in
+                let arr = L.build_load (lookup an m) "tmp" builder in
+                let idx = expr m builder index in 
+                let ptr = L.build_gep arr [| idx |] "" builder in 
+                ignore(L.build_store value ptr builder); builder
+              | (_, SAccess(sx, sn, mn)) -> 
+                let struct_val = expr m builder (A.Struct(sn), sx) in
+                let (member_names, _) = StringMap.find sn struct_decls in
+                let compare_by (n1, _) (n2, _) = compare n1 n2 in
+                let sorted_names = List.map (fun (n, _) -> n) (List.sort compare_by (StringMap.bindings member_names)) in
+                let name_idx_pairs = List.mapi (fun i n -> (n, i)) sorted_names in
+                let idx = snd (List.hd (List.filter (fun (n, _) -> n = mn) name_idx_pairs)) in
+                let e' = expr m builder e in
+                let v = L.build_insertvalue struct_val e' idx mn builder in 
 
-                  let insert_value sx = match sx with 
-                      SId(n) -> L.build_store v (lookup n m) builder
-                    | SSubscript(an, index) -> 
-                      let arr = L.build_load (lookup an m) "tmp" builder in
-                      let idx = expr m builder index in
-                      L.build_store v (L.build_gep arr [| idx |] "" builder) builder
-                    | _ -> raise(Failure("invalid access; should've checked in semant!"))
-                  in
-                  ignore(insert_value sx); builder 
-                | _ -> raise(Failure("invalid assign lhs; should've checked in semant!"))
-              in
-              ignore(List.map (fun (ee, e) -> eval_assign_lhs ee e) sl); (builder, m, dl)
+                let insert_value sx = match sx with 
+                    SId(n) -> L.build_store v (lookup n m) builder
+                  | SSubscript(an, index) -> 
+                    let arr = L.build_load (lookup an m) "tmp" builder in
+                    let idx = expr m builder index in
+                    L.build_store v (L.build_gep arr [| idx |] "" builder) builder
+                  | _ -> raise(Failure("invalid access; should've checked in semant!"))
+                in
+                ignore(insert_value sx); builder 
+              | _ -> raise(Failure("invalid assign lhs; should've checked in semant!"))
+            in
+            ignore(List.map (fun (ee, e) -> eval_assign_lhs ee e) sl); (builder, m, dl)
 
           | SDeclAssign (vdl, assl) -> let (_, mm, dl) = stmt m dl builder (SVdeclStmt vdl) in 
                 let new_assl = List.map (fun (s, e) -> ((svdecl_typ_to_typ (snd (List.hd vdl)), SId(s)), e)) assl in
@@ -511,7 +524,7 @@ let translate (globals, functions, structs) =
         ((L.builder_at_end context merge_bb), m, dl)
 
 
-     | SWhile (predicate, body) ->
+      | SWhile (predicate, body) ->
         let pred_bb = L.append_block context "while" the_function in
         ignore(L.build_br pred_bb builder);
 
@@ -526,103 +539,103 @@ let translate (globals, functions, structs) =
         ignore(L.build_cond_br bool_val body_bb merge_bb pred_builder);
         (L.builder_at_end context merge_bb, mm, dl)
 
-    | SFor (e1, e2, e3, body) -> stmt m dl builder
-	    ( SBlock [e1 ; SWhile (e2, SBlock [body ; e3]) ] ) 
+      | SFor (e1, e2, e3, body) -> stmt m dl builder
+        ( SBlock [e1 ; SWhile (e2, SBlock [body ; e3]) ] ) 
     
-    | SDefer(_, SCall(f, args)) -> 
+      | SDefer(_, SCall(f, args)) -> 
 
-      let construct_call = function
-          "printb" -> (printbool_func, [| (expr m builder (List.hd args)) |], "printbool")
-        | "prints" -> (printf_func, [| str_format_str ; (expr m builder (List.hd args)) |], "printf")
-        | "printc" -> (printf_func, [| char_format_str ; (expr m builder (List.hd args)) |], "printf")
-        | "printi" -> (printf_func, [| int_format_str ; (expr m builder (List.hd args)) |], "printf")
-        | "time" -> (gettime_func, [| |], "get_time")
-        | _ -> 
-          let (fdef, local, result) = construct_func_call f args m builder in
-          (fdef, [| local |], result) in
+        let construct_call = function
+            "printb" -> (printbool_func, [| (expr m builder (List.hd args)) |], "printbool")
+          | "prints" -> (printf_func, [| str_format_str ; (expr m builder (List.hd args)) |], "printf")
+          | "printc" -> (printf_func, [| char_format_str ; (expr m builder (List.hd args)) |], "printf")
+          | "printi" -> (printf_func, [| int_format_str ; (expr m builder (List.hd args)) |], "printf")
+          | "time" -> (gettime_func, [| |], "get_time")
+          | _ -> 
+            let (fdef, local, result) = construct_func_call f args m builder in
+            (fdef, [| local |], result) in
 
-      (builder, m, (construct_call f)::dl)
-    | SSelect cl ->
-        (* create array of clause structs *)
-        let num_elems = List.length cl in
-        let ptr = L.build_array_malloc clause_t
-            (L.const_int i32_t num_elems) "" builder 
-        in
-        let val_ptrs = List.mapi (fun i clause ->
-          let op = (function
-              (SSend(_), _) -> L.const_int i8_t (Char.code 's')
-            | (SRecv(_), _) -> L.const_int i8_t (Char.code 'r')
-            | _ -> raise(Failure("invalid select clause in codegen"))
-          ) clause in
-          let chexpr = (function
-              (SSend(c, _), _) -> c
-            | (SRecv(c, _), _) -> c
-            | _ -> raise(Failure("invalid select clause in codegen"))
-          ) clause in
-          let chan = expr m builder chexpr in
-          let chtyp = (function
-              (SSend(_, (t, _)), _) -> t
-            | (SRecv(_, t), _) -> t
-            | _ -> raise(Failure("invalid select clause in codegen"))
-          ) clause in
-          let local = L.build_alloca (ltype_of_typ chtyp) "" builder in
-          let value = (function
-              (SSend(_, e), _) -> expr m builder e
-            | (SRecv(_), _) -> L.const_int (ltype_of_typ chtyp) 0
-            | _ -> raise(Failure("invalid select clause in codegen"))
-          ) clause in
-          ignore(L.build_store value local builder);
-          let void_ptr_val = L.build_bitcast local void_ptr_t "" builder in
-          let len = L.size_of (ltype_of_typ chtyp) in
-          let idxs = List.rev (generate_seq (4 - 1)) in
-          let elem = List.fold_left2 (fun agg i v ->
-            L.build_insertvalue agg v i "clause" builder)
-          (L.const_null clause_t) idxs [op ; chan ; void_ptr_val ; len] in
-          let idx = L.const_int i32_t i in
-          let eptr = L.build_gep ptr [|idx|] "" builder in
-          let cptr = L.build_pointercast eptr 
-              (L.pointer_type (L.type_of elem)) "" builder in
-          let _ = (L.build_store elem cptr builder) 
-          in local) cl
-        in
-        (* call C function *)
-        let selected_clause = L.build_call select_func
-          [| ptr ; L.const_int i32_t num_elems |] "select" builder
-        in
-        (* branch to selected case *)
-        let merge_bb = L.append_block context "merge" the_function in
-        let build_br_merge = L.build_br merge_bb in
-        let (_, case_bbs) = List.fold_left2 (fun (i, cases) clause val_ptr ->
-          let case_bb = L.append_block context "case" the_function in
-          let case_stmt, mm = (function
-              SBlock(SAssignStmt(sass) :: case_block) ->
-                (* assign received value *)
-                let e' = L.build_load val_ptr "recv_val" builder in 
-                let rec handle_case_pred = function
-                  SAssign([((_, SId(id)), _)]) ->
-                    ignore(L.build_store e' (lookup id m) builder); m
-                | SDeclAssign([(id, vdt)], _) ->
-                    let (_, mm, _) = stmt m dl builder (SVdeclStmt [(id, vdt)])
+        (builder, m, (construct_call f)::dl)
+      | SSelect cl ->
+          (* create array of clause structs *)
+          let num_elems = List.length cl in
+          let ptr = L.build_array_malloc clause_t
+              (L.const_int i32_t num_elems) "" builder 
+          in
+          let val_ptrs = List.mapi (fun i clause ->
+            let op = (function
+                (SSend(_), _) -> L.const_int i8_t (Char.code 's')
+              | (SRecv(_), _) -> L.const_int i8_t (Char.code 'r')
+              | _ -> raise(Failure("invalid select clause in codegen"))
+            ) clause in
+            let chexpr = (function
+                (SSend(c, _), _)  -> c
+              | (SRecv(c, _), _)  -> c
+              | _ -> raise(Failure("invalid select clause in codegen"))
+            ) clause in
+            let chan  = expr m builder chexpr in
+            let chtyp = (function
+                (SSend(_, (t, _)), _) -> t
+              | (SRecv(_, t), _)      -> t
+              | _ -> raise(Failure("invalid select clause in codegen"))
+            ) clause in
+            let local = L.build_alloca (ltype_of_typ chtyp) "" builder in
+            let value = (function
+                (SSend(_, e), _)  -> expr m builder e
+              | (SRecv(_), _)     -> L.const_int (ltype_of_typ chtyp) 0
+              | _ -> raise(Failure("invalid select clause in codegen"))
+            ) clause in
+            ignore(L.build_store value local builder);
+            let void_ptr_val = L.build_bitcast local void_ptr_t "" builder in
+            let len   = L.size_of (ltype_of_typ chtyp) in
+            let idxs  = List.rev (generate_seq (4 - 1)) in
+            let elem  = List.fold_left2 (fun agg i v ->
+              L.build_insertvalue agg v i "clause" builder)
+              (L.const_null clause_t) idxs [op ; chan ; void_ptr_val ; len] in
+            let idx   = L.const_int i32_t i in
+            let eptr  = L.build_gep ptr [|idx|] "" builder in
+            let cptr  = L.build_pointercast eptr 
+                (L.pointer_type (L.type_of elem)) "" builder in
+            let _     = (L.build_store elem cptr builder) 
+            in local) cl
+          in
+          (* call C function *)
+          let selected_clause = L.build_call select_func
+            [| ptr ; L.const_int i32_t num_elems |] "select" builder
+          in
+          (* branch to selected case *)
+          let merge_bb = L.append_block context "merge" the_function in
+          let build_br_merge = L.build_br merge_bb in
+          let (_, case_bbs) = List.fold_left2 (fun (i, cases) clause val_ptr ->
+              let case_bb = L.append_block context "case" the_function in
+              let case_stmt, mm = (function
+                  SBlock(SAssignStmt(sass) :: case_block) ->
+                    (* assign received value *)
+                    let e' = L.build_load val_ptr "recv_val" builder in 
+                    let rec handle_case_pred = function
+                        SAssign([((_, SId(id)), _)]) ->
+                          ignore(L.build_store e' (lookup id m) builder); m
+                      | SDeclAssign([(id, vdt)], _) ->
+                          let (_, mm, _) = stmt m dl builder (SVdeclStmt [(id, vdt)])
+                          in
+                          ignore(L.build_store e' (lookup id mm) builder); mm
+                      | SInit([sa]) -> handle_case_pred(sa)
+                      | _ -> raise(Failure("invalid case predicate detected in codegen"))
                     in
-                    ignore(L.build_store e' (lookup id mm) builder); mm
-                | SInit([sa]) -> handle_case_pred(sa)
-                | _ -> raise(Failure("invalid case predicate detected in codegen"))
-              in
-              let mm = handle_case_pred sass in
-              SBlock(case_block), mm
-            | SBlock(_ :: case_block) -> SBlock(case_block), m
-            | _ -> raise(Failure("internal error: invalid case block in codegen"))
-          ) (snd clause) in
-          let (builder1, _, _) = stmt mm dl (L.builder_at_end context case_bb)
-            case_stmt in
-          add_terminal builder1 build_br_merge;
-          (i+1, case_bb :: cases))
-          (0, []) cl val_ptrs in
-        let sw = L.build_switch selected_clause merge_bb num_elems builder in
-        List.iteri (fun i case_bb ->
-          L.add_case sw (L.const_int i32_t i) case_bb;
-        ) (List.rev case_bbs);
-        ((L.builder_at_end context merge_bb), m, dl)
+                    let mm = handle_case_pred sass in
+                    SBlock(case_block), mm
+                  | SBlock(_ :: case_block) -> SBlock(case_block), m
+                  | _ -> raise(Failure("internal error: invalid case block in codegen"))
+              ) (snd clause) in
+            let (builder1, _, _) = stmt mm dl (L.builder_at_end context case_bb)
+              case_stmt in
+            add_terminal builder1 build_br_merge;
+            (i+1, case_bb :: cases))
+            (0, []) cl val_ptrs in
+          let sw = L.build_switch selected_clause merge_bb num_elems builder in
+          List.iteri (fun i case_bb ->
+            L.add_case sw (L.const_int i32_t i) case_bb;
+          ) (List.rev case_bbs);
+          ((L.builder_at_end context merge_bb), m, dl)
       | _ -> raise(Failure("statement not implemented; should've checked in semant!"))
     in
 
@@ -631,13 +644,16 @@ let translate (globals, functions, structs) =
     let (builder, _, ndl) = stmt [local_vars ; global_vars] defered_el builder (SBlock fdecl.sbody) in
     
     match L.block_terminator (L.insertion_block builder) with
-	      Some _ -> ()
+        Some _ -> ()
       | None -> ignore(List.map (fun (fdef, llargs, result) -> 
         L.build_call fdef llargs result builder) ndl);
 
     (* Add a return if the last block falls off the end *)
+    (* TODO: fix later *)
     add_terminal builder (L.build_ret (L.const_int i32_t 0))
-  in
-
-  ignore(List.iter build_function_body functions);
-  the_module
+      (*(match fdecl.styp with
+        A.Void -> L.build_ret_void
+      | t -> L.build_ret (L.const_int (ltype_of_typ t) 0))*)
+    in
+    ignore(List.iter build_function_body functions);
+    the_module
