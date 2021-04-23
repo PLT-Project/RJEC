@@ -1,6 +1,6 @@
 /* Ocamlyacc parser for RJEC
  * Initially based on MicroC, with inspiration from Shoo
- * Written by Justin Chen, Elaine Wang, Riya Chakraborty, and Caroline
+ * Written by Justin Chen, Elaine Wang, Riya Chakraborty, and Caroline Hoang
  */
 
 %{

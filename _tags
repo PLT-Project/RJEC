@@ -1,5 +1,5 @@
 # Initially based on MicroC
-# Written by Justin Chen, Elaine Wang, Riya Chakraborty, and Caroline
+# Written by Justin Chen, Elaine Wang, Riya Chakraborty, and Caroline Hoang
 
 # Include the llvm and llvm.analysis packages while compiling
 true: package(llvm), package(llvm.analysis)
