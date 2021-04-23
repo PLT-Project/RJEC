@@ -159,7 +159,7 @@ expr:
   | CLIT	                                        { CharLit($1)            }
   | BLIT                                          { BoolLit($1)            }
   | LSQUARE RSQUARE non_arr_typ LBRACE args_opt RBRACE
-                                                  { ArrLit($3, $5)     }
+                                                  { ArrLit($3, $5)         }
   | STRUCT ID LBRACE element_list_opt RBRACE
                                                   { StructLit($2, $4)      }
   | ID                                            { Id($1)                 }
