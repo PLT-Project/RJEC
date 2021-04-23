@@ -134,10 +134,7 @@ let rec string_of_stmt = function
   | If(e, s, Block([])) -> "if (" ^ string_of_expr e ^ ")\n" ^ string_of_stmt s
   | If(e, s1, s2) ->  "if (" ^ string_of_expr e ^ ")\n" ^
       string_of_stmt s1 ^ "else\n" ^ string_of_stmt s2
-  (*| For(e1, e2, e3, s) ->
-      "for (" ^ string_of_expr e1  ^ " ; " ^ string_of_expr e2 ^ " ; " ^
-      string_of_expr e3  ^ ") " ^ string_of_stmt s*)
-  | _ -> "??????\n" (* TODO: implement *)
+  | _ -> "??????\n" (* unimplemented pretty-print *)
 
 let string_of_vdecl_typ = function
   ArrayInit(i, t) -> "[" ^ string_of_expr i ^ "]" ^ string_of_typ t
@@ -160,5 +157,3 @@ let string_of_fdecl fdecl =
 let string_of_program (vars, (funcs, _)) =
   String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
   String.concat "\n" (List.map string_of_fdecl funcs)
-
-(* TODO: struct printing *)

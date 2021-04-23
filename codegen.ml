@@ -66,7 +66,6 @@ let translate (globals, functions, structs) =
     let global_var m (t, n) = 
       let init = match t with
           _ -> L.const_int (ltype_of_typ t) 0
-          (* TODO: add other cases *)
       in StringMap.add n (L.define_global n init the_module) m in
     List.fold_left global_var StringMap.empty globals in
 
@@ -156,7 +155,6 @@ let translate (globals, functions, structs) =
     let int_format_str = L.build_global_stringptr "%d\n" "fmt" builder
     and char_format_str = L.build_global_stringptr "%c\n" "fmt" builder
     and str_format_str = L.build_global_stringptr "%s\n" "fmt" builder in
-    (* TODO: reevaluate string formatting *)
 
     (* Construct the function's "locals": formal arguments and locally
        declared variables.  Allocate each on the stack, initialize their
@@ -419,7 +417,6 @@ let translate (globals, functions, structs) =
                   let local = L.build_alloca (L.pointer_type array_t) n builder in
                   ignore(L.build_store ptr local builder); local in
             let local = store_default_val t in
-            (* TODO: add to the symbol table?/manage scope? *)
             let new_m = StringMap.add n local (List.hd mm)
             in (builder, new_m::(List.tl mm), dl) 
           in List.fold_left declare_var (builder, m, dl) vdl
@@ -436,7 +433,6 @@ let translate (globals, functions, structs) =
                      (builder, m, [])
       | SYeet(SCall(f, args)) -> 
         let (fdef, local, _) = construct_func_call f args m builder in
-        (* let local_void_ptr = L.build_bitcast local void_ptr_t (f ^ "_arg_ptr") builder in *)
         ignore(L.build_call yeet_func [| fdef ; local |] "" builder); (builder, m, dl)
       | SAssignStmt s -> let assign_stmt builder = function
             SAssign sl -> 
@@ -640,11 +636,7 @@ let translate (globals, functions, structs) =
         L.build_call fdef llargs result builder) ndl);
 
     (* Add a return if the last block falls off the end *)
-    (* TODO: fix later *)
     add_terminal builder (L.build_ret (L.const_int i32_t 0))
-      (*(match fdecl.styp with
-        A.Void -> L.build_ret_void
-      | t -> L.build_ret (L.const_int (ltype_of_typ t) 0))*)
   in
 
   ignore(List.iter build_function_body functions);

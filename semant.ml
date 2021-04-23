@@ -308,8 +308,6 @@ let check (globals, (functions, structs)) =
           in 
           let args' = List.map2 check_call fd.formals args in
           (* fix multiple returns later *)
-          (* in (Func(List.map (fun (t, s) -> t) fd.formals, fd.types),
-                SCall(fname, args')) *)
           let rt_type : typ = match fd.types with
               [] -> Int
             | t :: [] -> t
@@ -321,7 +319,7 @@ let check (globals, (functions, structs)) =
     let check_assign_var scope var e =
       let lt = type_of_identifier var scope and (rt, e') = expr scope e in
        let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^ 
-      string_of_typ rt (* ^ " in " ^ string_of_stmt (AssignStmt(Assign(var, e))) *)
+      string_of_typ rt
       in ignore(check_assign lt rt err); (var, (rt, e'))
     in 
 
