@@ -237,7 +237,7 @@ let check (globals, (functions, structs)) =
           (* Determine expression type based on operator and operand types *)
           let ty : typ = match op with
             Add | Sub | Mult | Div | Mod when same && t1 = Int   -> Int
-          | Equal            when same               -> Bool
+          | Equal    when same  && (t1 = Int || t1 = Char || t1 = Bool)  -> Bool
           | Less | Leq
                      when same && (t1 = Int || t1 = Char) -> Bool
           | And | Or when same && t1 = Bool -> Bool
