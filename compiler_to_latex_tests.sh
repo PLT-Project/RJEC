@@ -16,7 +16,7 @@ for f in ${FILES[@]}
 do
    echo $f
    echo '\subsubsection{'"$f"'}' >> $TARGET
-   if [ ${f: -5} == ".shoo" ]
+   if [ ${f: -5} == ".rjec" ]
    then
     echo '\begin{mdframed}[hidealllines=true,backgroundcolor=blue!10]' >> $TARGET
     echo '\begin{lstlisting}'  >> $TARGET  

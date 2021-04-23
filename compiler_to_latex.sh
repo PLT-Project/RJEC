@@ -7,7 +7,7 @@ TARGET='./latex_compiler.txt'
 echo "" > $TARGET
 
 declare -a FILES
-FILES=("rjec.ml" "scanner.mll" "ast.ml" "rjecparse.mly" "sast.ml" "semant.ml" "codegen.ml" "concurrency.c" "Makefile" "buildlibmill.sh" "rjec.sh" "testall.sh")
+FILES=("rjec.ml" "scanner.mll" "ast.ml" "rjecparse.mly" "sast.ml" "semant.ml" "codegen.ml" "concurrency.c" "printbool.c" "Makefile" "buildlibmill.sh" "rjec.sh" "testall.sh")
 
 
 for f in ${FILES[@]}
