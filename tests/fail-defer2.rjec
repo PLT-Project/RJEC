@@ -1,3 +1,5 @@
+/*  Failure test: cannot have defer statement in a for loop */
+
 func main() {
     i := 1;
     for i < 3 {

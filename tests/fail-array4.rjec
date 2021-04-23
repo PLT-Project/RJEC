@@ -1,3 +1,7 @@
+/*  Failure test: cannot instantiate array with items that have a different 
+    type than is defined for the array type
+ */
+
 func main() {
     x := []bool {1, 2, 3, 4, 5};
 }

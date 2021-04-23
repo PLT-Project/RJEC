@@ -1,3 +1,5 @@
+/* Array test: declare an array of structs */
+
 struct foo {
     x int;
     y char;

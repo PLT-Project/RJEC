@@ -1,3 +1,6 @@
+/*  Failure test: cannot define global variable with the same name and 
+    different type as one that has already been defined */
+
 var i int;
 var i bool;
 

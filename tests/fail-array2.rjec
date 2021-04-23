@@ -1,3 +1,5 @@
+/* Failure test: cannot define array with non-integer length */
+
 func main() {
     var x [true]int;
 }

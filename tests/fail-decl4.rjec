@@ -1,3 +1,5 @@
+/*  Failure test: cannot define more than one struct with the same name */
+
 struct foo {
     x bool;
     y int;

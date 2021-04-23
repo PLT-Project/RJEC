@@ -1,3 +1,5 @@
+/*  Failure test: all argument names in a function must be unique */
+
 func foo(a int, a bool) bool {
     return true;
 }

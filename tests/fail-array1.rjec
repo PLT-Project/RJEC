@@ -1,3 +1,5 @@
+/* Failure test: cannot define array of array */
+
 func main() {
     var x [10][]int;
 }

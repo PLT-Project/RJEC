@@ -1,3 +1,7 @@
+/*  Failure test: cannot define assign value with a different type than the 
+    defined array type to an array item
+ */
+
 struct foo {
     x int;
     y char;

@@ -1,3 +1,5 @@
+/*  Failure test: all argument names in a struct must be unique */
+
 struct foo {
     x bool;
     x int;

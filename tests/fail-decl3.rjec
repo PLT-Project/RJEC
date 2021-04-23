@@ -1,3 +1,6 @@
+/*  Failure test: all variable names during multiple variable declaration 
+    must be unique */
+
 func main() {
 
     i, i := 2, 3;

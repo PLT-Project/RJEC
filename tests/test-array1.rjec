@@ -1,3 +1,5 @@
+/* Array test: declare an array of length 10 */
+
 func main () {
     var x, y [10]int;
     for i := 0; i < 10; i = i + 1 {
